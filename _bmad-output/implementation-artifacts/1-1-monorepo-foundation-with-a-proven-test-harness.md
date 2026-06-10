@@ -45,6 +45,25 @@ so that every later story starts from a working build-and-test loop.
   - [x] `npm run typecheck` → tsc strict-compiles the engine with zero errors
   - [x] Commit; this is the baseline every later story builds on
 
+### Review Findings
+
+<!-- bmad-code-review 2026-06-11, reviewed merged PR #1 (6e77408^1..6e77408). Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor. Per working agreement, code fixes are implemented by Danilo. -->
+
+- [x] [Review][Decision] AC1 FAILS — the one test does not pass — `index.ts` returns `"Hello from Engine!"` (capital E, from `const name: string = "Engine"`) but `index.test.ts` asserts `"Hello from engine!"`. Verified red: `npm test` → `Tests 1 failed (1)`. Decide which string is canonical, then align the other side. (blind+edge+auditor, critical)
+- [x] [Review][Decision] Engine package has no `exports`/`main`/`types` — `import "@card-clash/engine"` from another package fails under NodeNext (ERR_MODULE_NOT_FOUND/TS2307). Decide: add an `exports` map now, or defer to Story 2.1 when the first external consumer appears. (blind+edge, major)
+- [x] [Review][Decision] `vitest.config.ts` is type-checked by nothing — root typecheck only fans out to workspaces; no root tsconfig includes it. Decide: add a minimal root `tsconfig.json` (not in the story's target tree), or accept the gap. (blind+edge, minor)
+- [x] [Review][Patch] Add `"engines": { "node": ">=24" }` to root package.json — spec targets Node 24 / ES2024 but nothing enforces it; review machine ran Node v20.19.4 without warning [package.json]
+- [x] [Review][Patch] Story bookkeeping: header still `Status: ready-for-dev` (sprint says `review`); Debug Log records `npm test:engine` (invalid — `npm run test:engine`); Completion Notes empty [this file]
+- [x] [Review][Patch] `.gitignore`: redundant `_bmad/config.user.toml` line (covered by `_bmad/`); missing `coverage/` and `.env.*` variants (keep `.env.example` committed) [.gitignore]
+- [x] [Review][Patch] README documents `typecheck` as plain `tsc --noEmit`; actual script is per-workspace delegation with `--if-present` [README.md]
+- [x] [Review][Patch] Missing trailing newlines [packages/engine/src/index.ts, packages/engine/tsconfig.json, tsconfig.base.json]
+- [x] [Review][Patch] Redundant type annotation `const name: string = "Engine"` — literal is already inferred [packages/engine/src/index.ts:2]
+- [x] [Review][Defer] `outDir: "dist"` configured but no build script; `include: ["src"]` would emit test files into dist [packages/engine/tsconfig.json] — deferred to first build story (2.1)
+- [x] [Review][Defer] `typecheck --if-present` silently skips workspaces lacking the script [package.json:9] — deferred; add `typecheck` script to every new package starting 2.1
+- [x] [Review][Defer] `index.ts` is a default export, not a named-export barrel, and not deck-flavored [packages/engine/src/index.ts] — deferred; Story 1.2 replaces it with the real barrel
+- [x] [Review][Defer] No `skipLibCheck` in tsconfig.base.json — third-party `.d.ts` can break typecheck [tsconfig.base.json] — deferred, conscious-decision item
+- [x] [Review][Defer] `projects: ["packages/*"]` glob matches any directory, package or not [vitest.config.ts:5] — deferred, only bites if stray dirs land in packages/
+
 ## Dev Notes
 
 ### Working agreement (binding)
@@ -118,7 +137,35 @@ Variances from architecture tree, with rationale: `vitest.config.ts` at root is 
 N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement)
 
 ### Debug Log References
+scripts added:
+
+- `npm run typecheck`
+- `npm run test`
+- `npm run test:engine`
 
 ### Completion Notes List
 
 ### File List
+┌───────────────────────────────────┬───────┐
+│               File                │ Lines │
+├───────────────────────────────────┼───────┤
+│ package.json                      │ +22   │
+├───────────────────────────────────┼───────┤
+│ tsconfig.base.json                │ +9    │
+├───────────────────────────────────┼───────┤
+│ vitest.config.ts                  │ +7    │
+├───────────────────────────────────┼───────┤
+│ packages/engine/package.json      │ +16   │
+├───────────────────────────────────┼───────┤
+│ packages/engine/tsconfig.json     │ +8    │
+├───────────────────────────────────┼───────┤
+│ packages/engine/src/index.ts      │ +4    │
+├───────────────────────────────────┼───────┤
+│ packages/engine/src/index.test.ts │ +9    │
+├───────────────────────────────────┼───────┤
+│ .gitignore                        │ +11   │
+├───────────────────────────────────┼───────┤
+│ README.md                         │ +28   │
+└───────────────────────────────────┴───────┘
+
+9 files, 114 insertions, no deletions.

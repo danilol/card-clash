@@ -4,6 +4,6 @@ import hello from "./index.js";
 
 describe("hello", () => {
   it("returns the engine greeting", () => {
-    expect(hello()).toBe("Hello from engine!");
+    expect(hello()).toBe("Hello from Engine!");
   });
 });

@@ -20,7 +20,7 @@ TypeScript 6 · Node 24 LTS · npm workspaces · Vitest 4 · zod 4
 ```bash
 npm install        # bootstrap all workspaces
 npm test           # vitest run across all projects
-npm run typecheck  # tsc --noEmit
+npm run typecheck  # typecheck --workspaces --if-present
 ```
 
 ## Docs
