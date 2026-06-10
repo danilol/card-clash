@@ -1,0 +1,11 @@
+dist/
+node_modules/
+.env
+
+# bmad specifics
+_bmad/
+_bmad/config.user.toml
+
+# claude specifics
+.claude/settings.local.json
+.claude/skills/
