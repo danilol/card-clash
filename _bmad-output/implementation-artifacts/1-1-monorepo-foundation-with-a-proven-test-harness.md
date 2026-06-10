@@ -20,30 +20,30 @@ so that every later story starts from a working build-and-test loop.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Replace the placeholder root `package.json` (AC: 1, 3)
-  - [ ] ⚠️ The repo root already contains a default `npm init -y` package.json (`"main": "index.js"`, no workspaces, no `"type"`) — rewrite it, don't extend it
-  - [ ] Set: `"private": true`, `"type": "module"`, `"workspaces": ["packages/*"]`
-  - [ ] Root scripts: `"test"` runs Vitest once across all projects (`vitest run`); add a `"typecheck"` script that runs `tsc --noEmit` in each workspace (`npm run typecheck --workspaces` pattern)
-  - [ ] Root devDependencies: `typescript` (6.0.x), `vitest` (^4) — shared toolchain lives at the root and hoists; runtime deps live in the package that uses them
-- [ ] Task 2: Write `tsconfig.base.json` at the repo root (AC: 1)
-  - [ ] Shared strict compiler options only — no `include`/`outDir` here (those are per-package)
-  - [ ] Key decisions to make and be able to defend: `"strict": true`, `"module"`/`"moduleResolution"`: `"nodenext"` (engine & server are run on Node 24, compiled by plain tsc — not bundled), a modern `"target"` (Node 24 supports ES2024), `"verbatimModuleSyntax": true` (forces explicit `import type` — the exact discipline the client will need later when it may import engine types only)
-- [ ] Task 3: Hand-create the engine package skeleton (AC: 1, 2)
-  - [ ] `packages/engine/package.json`: name `@card-clash/engine` (or `engine` — pick one convention and keep it), `"type": "module"`, `"private": true`, dependencies: **zod ^4 and nothing else**
-  - [ ] `packages/engine/tsconfig.json`: `"extends": "../../tsconfig.base.json"` + package-level `include: ["src"]` and compile settings
-  - [ ] `packages/engine/src/index.ts`: the public API barrel — for now export one trivial pure function (e.g., something deck-flavored you'll keep or replace in 1.2)
-  - [ ] `packages/engine/src/index.test.ts`: co-located Vitest test asserting that function's behavior (Vitest co-location is the project pattern — tests sit beside the code they test)
-- [ ] Task 4: Wire Vitest 4 at the root (AC: 1)
-  - [ ] Root `vitest.config.ts` using `test.projects: ['packages/*']`
-  - [ ] ⚠️ Do NOT create `vitest.workspace.ts` — that file was deprecated in Vitest 3.2 and removed in v4; `projects` in the root config is the current mechanism
-- [ ] Task 5: Repo hygiene (AC: 1)
-  - [ ] `.gitignore`: `node_modules/`, `dist/`, `.env`
-  - [ ] Optional now, required eventually: stub `README.md`
-- [ ] Task 6: Prove the loop (AC: 1, 2, 3)
-  - [ ] `npm install` at root → engine workspace symlinked under root `node_modules`
-  - [ ] `npm test` → Vitest discovers the engine project and the one test passes
-  - [ ] `npm run typecheck` → tsc strict-compiles the engine with zero errors
-  - [ ] Commit; this is the baseline every later story builds on
+- [x] Task 1: Replace the placeholder root `package.json` (AC: 1, 3)
+  - [x] ⚠️ The repo root already contains a default `npm init -y` package.json (`"main": "index.js"`, no workspaces, no `"type"`) — rewrite it, don't extend it
+  - [x] Set: `"private": true`, `"type": "module"`, `"workspaces": ["packages/*"]`
+  - [x] Root scripts: `"test"` runs Vitest once across all projects (`vitest run`); add a `"typecheck"` script that runs `tsc --noEmit` in each workspace (`npm run typecheck --workspaces` pattern)
+  - [x] Root devDependencies: `typescript` (6.0.x), `vitest` (^4) — shared toolchain lives at the root and hoists; runtime deps live in the package that uses them
+- [x] Task 2: Write `tsconfig.base.json` at the repo root (AC: 1)
+  - [x] Shared strict compiler options only — no `include`/`outDir` here (those are per-package)
+  - [x] Key decisions to make and be able to defend: `"strict": true`, `"module"`/`"moduleResolution"`: `"nodenext"` (engine & server are run on Node 24, compiled by plain tsc — not bundled), a modern `"target"` (Node 24 supports ES2024), `"verbatimModuleSyntax": true` (forces explicit `import type` — the exact discipline the client will need later when it may import engine types only)
+- [x] Task 3: Hand-create the engine package skeleton (AC: 1, 2)
+  - [x] `packages/engine/package.json`: name `@card-clash/engine` (or `engine` — pick one convention and keep it), `"type": "module"`, `"private": true`, dependencies: **zod ^4 and nothing else**
+  - [x] `packages/engine/tsconfig.json`: `"extends": "../../tsconfig.base.json"` + package-level `include: ["src"]` and compile settings
+  - [x] `packages/engine/src/index.ts`: the public API barrel — for now export one trivial pure function (e.g., something deck-flavored you'll keep or replace in 1.2)
+  - [x] `packages/engine/src/index.test.ts`: co-located Vitest test asserting that function's behavior (Vitest co-location is the project pattern — tests sit beside the code they test)
+- [x] Task 4: Wire Vitest 4 at the root (AC: 1)
+  - [x] Root `vitest.config.ts` using `test.projects: ['packages/*']`
+  - [x] ⚠️ Do NOT create `vitest.workspace.ts` — that file was deprecated in Vitest 3.2 and removed in v4; `projects` in the root config is the current mechanism
+- [x] Task 5: Repo hygiene (AC: 1)
+  - [x] `.gitignore`: `node_modules/`, `dist/`, `.env`
+  - [x] Optional now, required eventually: stub `README.md` (written by AI 2026-06-11 — docs, not implementation code, per working agreement)
+- [x] Task 6: Prove the loop (AC: 1, 2, 3)
+  - [x] `npm install` at root → engine workspace symlinked under root `node_modules`
+  - [x] `npm test` → Vitest discovers the engine project and the one test passes
+  - [x] `npm run typecheck` → tsc strict-compiles the engine with zero errors
+  - [x] Commit; this is the baseline every later story builds on
 
 ## Dev Notes
 
