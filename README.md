@@ -17,10 +17,12 @@ TypeScript 6 · Node 24 LTS · npm workspaces · Vitest 4 · zod 4
 
 ## Commands
 
+Requires **Node ≥24** — enforced at install time via `.npmrc` (`engine-strict=true`).
+
 ```bash
-npm install        # bootstrap all workspaces
+npm install        # bootstrap all workspaces (fails on Node <24 by design)
 npm test           # vitest run across all projects
-npm run typecheck  # tsc --noEmit
+npm run typecheck  # root tsc (vitest.config.ts), then per-workspace tsc --noEmit
 ```
 
 ## Docs

@@ -1,6 +1,6 @@
 # Story 1.1: Monorepo foundation with a proven test harness
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -44,6 +44,36 @@ so that every later story starts from a working build-and-test loop.
   - [x] `npm test` → Vitest discovers the engine project and the one test passes
   - [x] `npm run typecheck` → tsc strict-compiles the engine with zero errors
   - [x] Commit; this is the baseline every later story builds on
+
+### Review Findings
+
+<!-- bmad-code-review 2026-06-11, reviewed merged PR #1 (6e77408^1..6e77408). Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor. Per working agreement, code fixes are implemented by Danilo. -->
+
+- [x] [Review][Decision] AC1 FAILS — the one test does not pass — `index.ts` returns `"Hello from Engine!"` (capital E, from `const name: string = "Engine"`) but `index.test.ts` asserts `"Hello from engine!"`. Verified red: `npm test` → `Tests 1 failed (1)`. Decide which string is canonical, then align the other side. (blind+edge+auditor, critical)
+- [x] [Review][Decision] Engine package has no `exports`/`main`/`types` — `import "@card-clash/engine"` from another package fails under NodeNext (ERR_MODULE_NOT_FOUND/TS2307). Decide: add an `exports` map now, or defer to Story 2.1 when the first external consumer appears. (blind+edge, major)
+- [x] [Review][Decision] `vitest.config.ts` is type-checked by nothing — root typecheck only fans out to workspaces; no root tsconfig includes it. Decide: add a minimal root `tsconfig.json` (not in the story's target tree), or accept the gap. (blind+edge, minor)
+- [x] [Review][Patch] Add `"engines": { "node": ">=24" }` to root package.json — spec targets Node 24 / ES2024 but nothing enforces it; review machine ran Node v20.19.4 without warning [package.json]
+- [x] [Review][Patch] Story bookkeeping: header still `Status: ready-for-dev` (sprint says `review`); Debug Log records `npm test:engine` (invalid — `npm run test:engine`); Completion Notes empty [this file]
+- [x] [Review][Patch] `.gitignore`: redundant `_bmad/config.user.toml` line (covered by `_bmad/`); missing `coverage/` and `.env.*` variants (keep `.env.example` committed) [.gitignore]
+- [x] [Review][Patch] README documents `typecheck` as plain `tsc --noEmit`; actual script is per-workspace delegation with `--if-present` [README.md]
+- [x] [Review][Patch] Missing trailing newlines [packages/engine/src/index.ts, packages/engine/tsconfig.json, tsconfig.base.json]
+- [x] [Review][Patch] Redundant type annotation `const name: string = "Engine"` — literal is already inferred [packages/engine/src/index.ts:2]
+- [x] [Review][Defer] `outDir: "dist"` configured but no build script; `include: ["src"]` would emit test files into dist [packages/engine/tsconfig.json] — deferred to first build story (2.1)
+- [x] [Review][Defer] `typecheck --if-present` silently skips workspaces lacking the script [package.json:9] — deferred; add `typecheck` script to every new package starting 2.1
+- [x] [Review][Defer] `index.ts` is a default export, not a named-export barrel, and not deck-flavored [packages/engine/src/index.ts] — deferred; Story 1.2 replaces it with the real barrel
+- [x] [Review][Defer] No `skipLibCheck` in tsconfig.base.json — third-party `.d.ts` can break typecheck [tsconfig.base.json] — deferred, conscious-decision item
+- [x] [Review][Defer] `projects: ["packages/*"]` glob matches any directory, package or not [vitest.config.ts:5] — deferred, only bites if stray dirs land in packages/
+
+### Re-Review Findings (story/1.1-fixes, 150bbc1)
+
+<!-- bmad-code-review re-run 2026-06-11 on branch diff story/1.1-fixes vs main. All 3 ACs now PASS; 12 of 14 prior items verified resolved or properly deferred. -->
+
+- [x] [Review][Patch] Root `tsconfig.json` is a no-op — copied from engine config (`include: ["src"]`, but no root `src/` exists → TS18003 if ever run); `vitest.config.ts` is still not included, and no script invokes tsc at the root. Needs `include: ["vitest.config.ts"]`, `noEmit: true`, no `outDir`/`rootDir`, plus wiring into the root `typecheck` script [tsconfig.json, package.json] — fixed by AI 2026-06-11 per explicit request (config + docs exception)
+- [x] [Review][Patch] `.gitignore` `.env.*` will swallow the future `.env.example` — add a `!.env.example` negation after it [.gitignore:5]
+- [x] [Review][Patch] Bookkeeping still incomplete: `Status:` header remains `ready-for-dev` (sprint says `review`); Completion Notes List empty; File List omits the fix commit's new files (`tsconfig.json`, `deferred-work.md`) [this file] — fixed by AI 2026-06-11 per explicit request
+- [x] [Review][Patch] New trailing-newline misses introduced by the fix commit itself [tsconfig.json, this file]
+- [x] [Review][Decision] Engine `exports`/`main`/`types` point at `./src/index.ts` — resolves for tsc/Vitest, but plain Node cannot load `.ts` from `node_modules` (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING on Node ≥22.6, ERR_UNKNOWN_FILE_EXTENSION on 20). No runtime consumer exists until 2.1. Accept + log in deferred-work, or repoint to `dist/` once a build exists. — DECIDED 2026-06-11: accepted; repoint-to-dist logged in deferred-work.md for story 2.1
+- [x] [Review][Decision] `engines: { node: ">=24" }` is advisory — npm only warns at install time; this machine runs Node v20.19.4 and everything passes silently. Enforce via committed `.npmrc` with `engine-strict=true`, or accept as documentation. — DECIDED 2026-06-11: `.npmrc` with `engine-strict=true` added; local Node upgrade to 24 required before next `npm install`
 
 ## Dev Notes
 
@@ -118,7 +148,55 @@ Variances from architecture tree, with rationale: `vitest.config.ts` at root is 
 N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement)
 
 ### Debug Log References
+scripts added:
+
+- `npm run typecheck`
+- `npm run test`
+- `npm run test:engine`
 
 ### Completion Notes List
 
+- Implemented by hand per working agreement; reviewed via bmad-code-review (PR #1 diff), fixed on branch `story/1.1-fixes`.
+- Canonical greeting settled as `"Hello from Engine!"` (test was asserting lowercase; AC1 was red on merged main until 150bbc1).
+- Engine `exports`/`main`/`types` point at `./src/index.ts` — works for tsc/Vitest only; must be repointed to `dist/` when a build script arrives (logged in deferred-work.md).
+- Root `tsconfig.json` covers `vitest.config.ts` (noEmit); root `typecheck` script runs root tsc before the workspace fan-out.
+- Review-fix round 2 config/doc patches applied by AI on 2026-06-11 at Danilo's explicit request (working-agreement exception: config + bookkeeping, no implementation code).
+
 ### File List
+┌───────────────────────────────────┬───────┐
+│               File                │ Lines │
+├───────────────────────────────────┼───────┤
+│ package.json                      │ +22   │
+├───────────────────────────────────┼───────┤
+│ tsconfig.base.json                │ +9    │
+├───────────────────────────────────┼───────┤
+│ vitest.config.ts                  │ +7    │
+├───────────────────────────────────┼───────┤
+│ packages/engine/package.json      │ +16   │
+├───────────────────────────────────┼───────┤
+│ packages/engine/tsconfig.json     │ +8    │
+├───────────────────────────────────┼───────┤
+│ packages/engine/src/index.ts      │ +4    │
+├───────────────────────────────────┼───────┤
+│ packages/engine/src/index.test.ts │ +9    │
+├───────────────────────────────────┼───────┤
+│ .gitignore                        │ +11   │
+├───────────────────────────────────┼───────┤
+│ README.md                         │ +28   │
+└───────────────────────────────────┴───────┘
+
+9 files, 114 insertions, no deletions.
+
+Added/changed in review-fix rounds (`story/1.1-fixes`):
+
+| File | Change |
+|---|---|
+| `tsconfig.json` | NEW — root config type-checking `vitest.config.ts` |
+| `package.json` | `engines` field; `typecheck` runs root tsc + workspace fan-out |
+| `packages/engine/package.json` | `exports`/`main`/`types` (point at src — see deferred-work) |
+| `packages/engine/src/index.ts` | greeting canonicalized, annotation removed |
+| `packages/engine/src/index.test.ts` | asserts `"Hello from Engine!"` |
+| `.gitignore` | `coverage/`, `.env.*`, `!.env.example`; redundant line removed |
+| `README.md` | typecheck comment corrected |
+| `_bmad-output/implementation-artifacts/deferred-work.md` | NEW — deferred review items |
+| `.npmrc` | NEW — `engine-strict=true` enforces Node ≥24 at install |

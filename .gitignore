@@ -1,10 +1,12 @@
 dist/
 node_modules/
+coverage/
 .env
+.env.*
+!.env.example
 
 # bmad specifics
 _bmad/
-_bmad/config.user.toml
 
 # claude specifics
 .claude/settings.local.json
