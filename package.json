@@ -1,0 +1,22 @@
+{
+  "name": "card-clash",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:engine": "vitest run --project @card-clash/engine",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0",
+    "vitest": "^4.0.0"
+  },
+  "keywords": ["cards", "anime", "multiplayer", "game"],
+  "workspaces": [
+    "packages/*"
+  ],
+  "author": "Danilo Lima",
+  "license": "ISC",
+  "description": "An attributes comparison card game about pirates"
+}
