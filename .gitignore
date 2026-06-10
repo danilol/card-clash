@@ -3,6 +3,7 @@ node_modules/
 coverage/
 .env
 .env.*
+!.env.example
 
 # bmad specifics
 _bmad/

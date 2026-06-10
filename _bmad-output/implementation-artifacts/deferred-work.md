@@ -7,3 +7,4 @@
 - `packages/engine/src/index.ts` uses a default export and a non-deck-flavored `hello()`; Story 1.2 replaces it with the real named-export barrel (`export { ... } from './deck/deck.js'`).
 - `tsconfig.base.json` omits `skipLibCheck` — future dependencies' `.d.ts` files can fail the whole workspace typecheck. Make a conscious keep/add decision when the dependency count grows.
 - `vitest.config.ts` `projects: ["packages/*"]` treats any directory under packages/ as a Vitest project. Only matters if non-package dirs appear there.
+- Engine `exports`/`main`/`types` point at `./src/index.ts` (decision 2026-06-11: accepted for now). Works for tsc/Vitest; plain Node cannot load `.ts` from `node_modules`. MUST be repointed to `dist/` in the story that introduces the engine build (2.1), before the first runtime consumer imports `@card-clash/engine`.

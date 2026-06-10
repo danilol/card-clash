@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "test:engine": "vitest run --project @card-clash/engine",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
     "typescript": "^6.0.0",
