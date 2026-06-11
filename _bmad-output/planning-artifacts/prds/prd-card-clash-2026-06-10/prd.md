@@ -123,7 +123,7 @@ All draft assumptions (Super Trump redraw, round cap, normalizations including D
 
 ## Appendix A — The 32-Card Deck (normalized, authoritative for v1)
 
-Normalization rules applied to the source chart (confirmed by Danilo, 2026-06-10): every stat is a single number; parenthetical annotations are dropped and the primary number kept (Usopp's Fear Factor is 15, not the "fake 99"; Jinbe's Speed is 65, not his in-water 92); "No DF" → Devil Fruit Mastery 0; Marine bounty "0" kept as 0; deceased characters' listed ages used as-is; Dragon's "Unknown" bounty set to **5,000,000,000**.
+Normalization rules applied to the source chart (confirmed by Danilo, 2026-06-10): every stat is a single number; parenthetical annotations are dropped and the primary number kept (Usopp's Fear Factor is 15, not the "fake 99"; Jinbe's Speed is 65, not his in-water 92); "No DF" → Devil Fruit Mastery 0; Marine bounty "0" kept as 0; deceased characters' listed ages used as-is; Dragon's "Unknown" bounty set to **5,000,000,000**. Amendment (Danilo, 2026-06-11, during Story 1.2 review): row #31 display name expanded from `Sabo` to `"Flame Emperor" Sabo`.
 
 | # | Character | Bounty | Age | Haki | Loyalty/Honor | Devil Fruit Mastery | Fear Factor | Speed/Agility | Battle IQ |
 |---|---|---|---|---|---|---|---|---|---|
@@ -157,7 +157,7 @@ Normalization rules applied to the source chart (confirmed by Danilo, 2026-06-10
 | 28 | Borsalino (Kizaru) | 0 | 58 | 86 | 70 | 93 | 88 | 100 | 80 |
 | 29 | Bartholomew Kuma | 296,000,000 | 47 | 75 | 100 | 95 | 88 | 92 | 85 |
 | 30 | Monkey D. Dragon | 5,000,000,000 | 55 | 95 | 90 | 90 | 95 | 90 | 96 |
-| 31 | Sabo | 602,000,000 | 22 | 84 | 98 | 75 | 84 | 89 | 86 |
+| 31 | "Flame Emperor" Sabo | 602,000,000 | 22 | 84 | 98 | 75 | 84 | 89 | 86 |
 | 32 | Mr. 2 Bon Clay | 32,000,000 | 32 | 0 | 100 | 80 | 45 | 82 | 78 |
 
 ⚓ Buggy is the fixed **Counter card** (beats the Super Trump, per FR18). Stats: Age is low-wins; all others high-wins.

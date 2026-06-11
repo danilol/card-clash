@@ -9,13 +9,20 @@
   "scripts": {
     "test": "vitest run",
     "test:engine": "vitest run --project @card-clash/engine",
-    "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present"
+    "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present",
+    "format": "prettier --write ."
   },
   "devDependencies": {
+    "prettier": "^3.8.4",
     "typescript": "^6.0.0",
     "vitest": "^4.0.0"
   },
-  "keywords": ["cards", "anime", "multiplayer", "game"],
+  "keywords": [
+    "cards",
+    "anime",
+    "multiplayer",
+    "game"
+  ],
   "workspaces": [
     "packages/*"
   ],
