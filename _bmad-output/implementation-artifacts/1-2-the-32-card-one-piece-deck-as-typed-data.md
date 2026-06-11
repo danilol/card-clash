@@ -51,6 +51,23 @@ so that matches use the exact roster and values from the PRD.
   - [x] `npm run typecheck` — strict-clean
   - [x] Commit; run code-review on the diff per process
 
+### Review Findings
+
+- [x] [Review][Decision] Sabo's `name` deviates from PRD Appendix A — **resolved by PRD amendment (2026-06-11):** Danilo's intentional choice; Appendix A row #31 updated to `"Flame Emperor" Sabo` with the amendment recorded in the normalization notes. Code and PRD now agree; no code change.
+- [x] [Review][Decision→Patch] Exported deck is a mutable shared singleton — **decided (2026-06-11): readonly types.** `Deck.stats`/`Deck.cards` become `readonly` arrays (compile-time protection; 1.3's shuffle must copy). Danilo implements [packages/engine/src/deck/deck.ts:6-9]
+- [ ] [Review][Decision→Patch] `counterCard` shape — **decided (2026-06-11): optional flag `counterCard?: true`.** Omit on the 31 normal cards; only Buggy carries it. Danilo implements [packages/engine/src/types.ts:23, packages/engine/src/deck/onePieceDeck.ts]
+- [x] [Review][Patch] `.ts`-extension relative imports violate the ESM `.js` rule (type-only erasure is why tsc passes today; breaks on first value export / 2.1 emit) [packages/engine/src/index.ts:1, packages/engine/src/deck/deck.test.ts:3]
+- [x] [Review][Patch] Redundant `: Deck` annotation widens the export and defeats `satisfies Deck` [packages/engine/src/deck/onePieceDeck.ts:3]
+- [x] [Review][Patch] Dead exported type `StatDirection` — never referenced; `types.ts:16` inlines the union [packages/engine/src/deck/deck.ts:4]
+- [x] [Review][Patch] Stat `label` values shipped untested — suite asserts `key`/`direction` only; PRD display names unguarded [packages/engine/src/deck/deck.test.ts:79-87]
+- [x] [Review][Patch] PRD order #1–#32 unasserted — reordered cards would pass the suite; Task 3 mandates PRD order [packages/engine/src/deck/deck.test.ts]
+- [x] [Review][Patch] No upper bound on the six 0–100-scale stats — a dropped/extra digit in the 28 non-spot-checked rows passes [packages/engine/src/deck/deck.test.ts:104-114]
+- [x] [Review][Patch] Barrel omits `StatDefinition` — Epic 2 consumers can't name the stat-metadata type from the package surface [packages/engine/src/index.ts:1]
+- [x] [Review][Patch] Missing trailing newline (recurring 1.1 review nit) [packages/engine/src/deck/onePieceDeck.ts:529]
+- [x] [Review][Patch] Stray blank lines / shallow card indentation [packages/engine/src/deck/deck.ts:2-3,10; packages/engine/src/deck/onePieceDeck.ts (Doflamingo→Ace seam)]
+- [x] [Review][Defer] Type-only circular import `types.ts` ↔ `deck/deck.ts` [packages/engine/src/types.ts:1] — deferred, consequence of the recorded AC4 re-export decision; type-only so harmless until layout changes
+- [x] [Review][Defer] Quote-style split across new files (single vs double) — deferred, needs a formatter decision (Prettier/Biome), not a story-1.2 fix
+
 ## Dev Notes
 
 ### Working agreement (binding)

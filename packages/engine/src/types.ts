@@ -1,14 +1,14 @@
 import type { Deck } from './deck/deck.js';
 
 export type StatKey =
-  | "bounty"
-  | "age"
-  | "haki"
-  | "loyalty"
-  | "devilFruitMastery"
-  | "fearFactor"
-  | "speed"
-  | "battleIQ";
+  | 'bounty'
+  | 'age'
+  | 'haki'
+  | 'loyalty'
+  | 'devilFruitMastery'
+  | 'fearFactor'
+  | 'speed'
+  | 'battleIQ';
 
 export interface StatDefinition {
   key: StatKey;
@@ -20,8 +20,7 @@ export interface Card {
   id: string;
   name: string;
   stats: Record<StatKey, number>;
-  counterCard?: boolean;
+  counterCard?: true;
 }
 
 export { type Deck };
-

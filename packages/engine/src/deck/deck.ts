@@ -1,10 +1,6 @@
-import type { Card, StatDefinition } from "../types.js";
-
-
-export type StatDirection = "high" | "low";
+import type { Card, StatDefinition } from '../types.js';
 
 export interface Deck {
-  stats: StatDefinition[];
-  cards: Card[];
+  readonly stats: readonly StatDefinition[];
+  readonly cards: readonly Card[];
 }
-

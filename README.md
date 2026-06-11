@@ -9,11 +9,11 @@ TypeScript 6 · Node 24 LTS · npm workspaces · Vitest 4 · zod 4
 
 ## Packages
 
-| Package | Role |
-|---|---|
+| Package           | Role                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
 | `packages/engine` | Pure, deterministic rules engine — no I/O, zod is its only dependency. The unit-test showcase. |
-| `packages/server` | *(planned, Epic 2)* Express 5 + Socket.IO; server-authoritative match state |
-| `packages/client` | *(planned, Epic 2)* React 19 SPA rendering per-player projections |
+| `packages/server` | _(planned, Epic 2)_ Express 5 + Socket.IO; server-authoritative match state                    |
+| `packages/client` | _(planned, Epic 2)_ React 19 SPA rendering per-player projections                              |
 
 ## Commands
 

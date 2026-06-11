@@ -8,3 +8,8 @@
 - `tsconfig.base.json` omits `skipLibCheck` — future dependencies' `.d.ts` files can fail the whole workspace typecheck. Make a conscious keep/add decision when the dependency count grows.
 - `vitest.config.ts` `projects: ["packages/*"]` treats any directory under packages/ as a Vitest project. Only matters if non-package dirs appear there.
 - Engine `exports`/`main`/`types` point at `./src/index.ts` (decision 2026-06-11: accepted for now). Works for tsc/Vitest; plain Node cannot load `.ts` from `node_modules`. MUST be repointed to `dist/` in the story that introduces the engine build (2.1), before the first runtime consumer imports `@card-clash/engine`.
+
+## Deferred from: code review of 1-2-the-32-card-one-piece-deck-as-typed-data (2026-06-11)
+
+- Type-only circular import between `packages/engine/src/types.ts` and `packages/engine/src/deck/deck.ts` (each imports types from the other). Harmless while type-only (erased at emit); a consequence of the recorded decision to re-export `Deck` from `types.ts` for AC4. Revisit if either file gains value exports or the layout changes.
+- Quote-style inconsistency across engine source files (`types.ts`/`index.ts` single quotes; `deck.ts`/`onePieceDeck.ts`/`deck.test.ts` double quotes). No formatter is configured; decide on Prettier/Biome (or an ESLint rule) in a tooling-focused moment rather than hand-normalizing.
