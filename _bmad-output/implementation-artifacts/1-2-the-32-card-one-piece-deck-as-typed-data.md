@@ -1,6 +1,6 @@
 # Story 1.2: The 32-card One Piece deck as typed data
 
-Status: in-progress
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -55,7 +55,7 @@ so that matches use the exact roster and values from the PRD.
 
 - [x] [Review][Decision] Sabo's `name` deviates from PRD Appendix A — **resolved by PRD amendment (2026-06-11):** Danilo's intentional choice; Appendix A row #31 updated to `"Flame Emperor" Sabo` with the amendment recorded in the normalization notes. Code and PRD now agree; no code change.
 - [x] [Review][Decision→Patch] Exported deck is a mutable shared singleton — **decided (2026-06-11): readonly types.** `Deck.stats`/`Deck.cards` become `readonly` arrays (compile-time protection; 1.3's shuffle must copy). Danilo implements [packages/engine/src/deck/deck.ts:6-9]
-- [ ] [Review][Decision→Patch] `counterCard` shape — **decided (2026-06-11): optional flag `counterCard?: true`.** Omit on the 31 normal cards; only Buggy carries it. Danilo implements [packages/engine/src/types.ts:23, packages/engine/src/deck/onePieceDeck.ts]
+- [x] [Review][Decision→Patch] `counterCard` shape — **decided (2026-06-11): optional flag `counterCard?: true`.** Omit on the 31 normal cards; only Buggy carries it. Danilo implements [packages/engine/src/types.ts:23, packages/engine/src/deck/onePieceDeck.ts]
 - [x] [Review][Patch] `.ts`-extension relative imports violate the ESM `.js` rule (type-only erasure is why tsc passes today; breaks on first value export / 2.1 emit) [packages/engine/src/index.ts:1, packages/engine/src/deck/deck.test.ts:3]
 - [x] [Review][Patch] Redundant `: Deck` annotation widens the export and defeats `satisfies Deck` [packages/engine/src/deck/onePieceDeck.ts:3]
 - [x] [Review][Patch] Dead exported type `StatDirection` — never referenced; `types.ts:16` inlines the union [packages/engine/src/deck/deck.ts:4]
