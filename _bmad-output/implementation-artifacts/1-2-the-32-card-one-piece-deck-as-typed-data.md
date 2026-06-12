@@ -176,6 +176,6 @@ N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement;
 - `packages/engine/src/types.ts` (new) — `StatKey`, `StatDefinition`, `Card`; re-exports `Deck`
 - `packages/engine/src/deck/deck.ts` (new) — `Deck` interface, `StatDirection` (theme seam)
 - `packages/engine/src/deck/onePieceDeck.ts` (new) — the 32-card One Piece deck data
-- `packages/engine/src/deck/deck.test.ts` (new, AI-written per exemption) — 42-test suite for AC 1–3
+- `packages/engine/src/deck/deck.test.ts` (new, AI-written per exemption) — 43-test suite for AC 1–3 (grew during review: labels, PRD order, scale bounds)
 - `packages/engine/src/index.ts` (modified) — real named-export barrel replaces `hello()` (closes deferred-work item)
 - `packages/engine/src/index.test.ts` (deleted) — hello test superseded by `deck.test.ts`
