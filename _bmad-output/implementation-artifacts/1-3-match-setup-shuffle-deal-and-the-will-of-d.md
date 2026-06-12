@@ -4,7 +4,7 @@ baseline_commit: 25c85db1d596694a5f4304e2292803900d3b78b2
 
 # Story 1.3: Match setup — shuffle, deal, and the Will of D.
 
-Status: in-progress
+Status: review
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -58,8 +58,17 @@ so that every game starts correct and unpredictable.
 - [ ] Task 6: Prove the loop (AC: all)
   - [x] `npm test` — setup suite green alongside the 43 deck tests
   - [x] `npm run typecheck` — strict-clean
-  - [ ] Prettier (configured 2026-06-11, singleQuote): rely on format-on-save or run `npm run format` before committing
+  - [x] Prettier (configured 2026-06-11, singleQuote): rely on format-on-save or run `npm run format` before committing
   - [ ] Commit on `story/1.3`, push, open PR, run code-review per process
+
+### Review Findings
+
+- [ ] [Review][Patch] **HIGH** — `MatchState` fields are not `readonly`; state is not immutable at the type level (AC 4, Task 2 constraint "every field readonly"). `state.roundsPlayed = 5` and `state.playerStacks[id] = ...` compile today. Fix: `readonly` on every field, and wrap the stacks record so its entries can't be reassigned [packages/engine/src/types.ts:30-37]
+- [ ] [Review][Patch] LOW — `Rng` interface documents no range contract; implementers/consumers must guess that `next()` returns a float in [0, 1). Fix: doc comment on the interface [packages/engine/src/rng.ts:1-3]
+- [ ] [Review][Patch] LOW — Naming drift (naming contract: one concept = one name): `cardsWithoutTrump` actually holds cards without the *counter card*; `randomDeckIndex` indexes any array (used on `players`); `PlayerStack` (singular) holds ALL players' stacks [packages/engine/src/match/setup.ts:45,49; packages/engine/src/types.ts:28]
+- [ ] [Review][Patch] LOW — `// TODO: Add other fields as needed` shipped inside the public exported `MatchState`; the extend-not-prebuild rule is story process, not a code comment [packages/engine/src/types.ts:38]
+- [ ] [Review][Patch] LOW — `mulberry32` accumulator never wraps to 32 bits (`a += 0x6d2b79f5` grows as a float; precision degrades after ~5M calls on one instance). Matches the bryc reference, but `| 0` is a one-char robustness fix [packages/engine/src/rng.ts:8]
+- [x] [Review][Defer] `Deck` type reachable via two import routes (`deck/deck.js` directly vs `types.js` re-export) — deferred, pre-existing: accepted 1.2 variance (type-only circular import) [packages/engine/src/match/setup.ts:2]
 
 ## Dev Notes
 

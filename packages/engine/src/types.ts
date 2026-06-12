@@ -26,17 +26,15 @@ export interface Card {
 export type PlayerId = string;
 
 // index 0 is the top of the stack
-export type PlayerStack = Record<PlayerId, readonly Card[]>;
+export type PlayerStacks = Readonly<Record<PlayerId, readonly Card[]>>;
 
 export type MatchState = {
-  players: readonly PlayerId[];
-  playerStacks: PlayerStack;
-  pot: readonly Card[];
-  superTrumpCardId: string;
-  chooser: PlayerId;
-  roundsPlayed: number;
-
-  // TODO: Add other fields as needed
+  readonly players: readonly PlayerId[];
+  readonly playerStacks: PlayerStacks;
+  readonly pot: readonly Card[];
+  readonly superTrumpCardId: string;
+  readonly chooser: PlayerId;
+  readonly roundsPlayed: number;
 };
 
 export { type Deck };

@@ -12,7 +12,7 @@ export function createMatch(
 
   const matchDeckCards = fisherYatesShuffle([...deck.cards], rng);
   const superTrumpCard = pickTrumpCard(matchDeckCards, rng);
-  const firstToChoose = players[randomDeckIndex(players, rng)];
+  const firstToChoose = players[randomIndex(players, rng)];
 
   const cardsPlayer1: Card[] = matchDeckCards.slice(0, 16);
   const cardsPlayer2: Card[] = matchDeckCards.slice(16);
@@ -44,10 +44,10 @@ function fisherYatesShuffle(arr: Card[], rng: Rng): Card[] {
 }
 
 function pickTrumpCard(cards: Card[], rng: Rng) {
-  const cardsWithoutTrump = cards.filter((card) => !card.counterCard);
-  return cardsWithoutTrump[randomDeckIndex(cardsWithoutTrump, rng)];
+  const cardsWithoutCounterCard = cards.filter((card) => !card.counterCard);
+  return cardsWithoutCounterCard[randomIndex(cardsWithoutCounterCard, rng)];
 }
 
-function randomDeckIndex(arr: readonly unknown[], rng: Rng) {
+function randomIndex(arr: readonly unknown[], rng: Rng) {
   return Math.floor(rng.next() * arr.length);
 }
