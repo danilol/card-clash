@@ -1,5 +1,7 @@
 import type { Deck } from './deck/deck.js';
 
+export { type Deck };
+
 export type StatKey =
   | 'bounty'
   | 'age'
@@ -13,8 +15,10 @@ export type StatKey =
 export interface StatDefinition {
   key: StatKey;
   label: string;
-  direction: 'high' | 'low';
+  direction: Direction;
 }
+
+export type Direction = 'high' | 'low';
 
 export interface Card {
   id: string;
@@ -28,6 +32,7 @@ export type PlayerId = string;
 // index 0 is the top of the stack
 export type PlayerStacks = Readonly<Record<PlayerId, readonly Card[]>>;
 
+// the main state of the match
 export type MatchState = {
   readonly players: readonly PlayerId[];
   readonly playerStacks: PlayerStacks;
@@ -35,6 +40,28 @@ export type MatchState = {
   readonly superTrumpCardId: string;
   readonly chooser: PlayerId;
   readonly roundsPlayed: number;
+  readonly statDefinitions: readonly StatDefinition[];
+  readonly lastRound: RoundOutcome | null; // first round is null, every subsequent round has a value
 };
 
-export { type Deck };
+export type SelectStatCommand = {
+  type: Command;
+  playerId: PlayerId;
+  stat: StatKey;
+};
+
+export type Command = 'selectStat' | 'start' | 'end';
+
+export type CommandResult =
+  | { ok: true; state: MatchState }
+  | { ok: false; error: { code: CommandErrorCode; message: string } };
+
+export type CommandErrorCode = 'NOT_CHOOSER' | 'INVALID_STAT';
+
+export type RoundOutcome = {
+  stat: StatKey;
+  playedCards: PlayerStacks;
+  winner: PlayerId | null;
+};
+
+export type ComparisonResult = 'chooser' | 'opponent' | 'tie';
