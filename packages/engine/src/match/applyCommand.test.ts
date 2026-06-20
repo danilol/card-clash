@@ -23,6 +23,11 @@ function cardById(id: string): Card {
   return card;
 }
 
+// A sentinel id that matches no card. With this as the Super Trump, rounds
+// resolve purely on stats — so a test must opt into trump behaviour by passing
+// superTrumpCardId equal to a card it actually deals.
+const NO_TRUMP_IN_PLAY = '__no-super-trump__';
+
 // Hand-build a minimal MatchState with known top cards. Index 0 is the top of
 // the stack (the 1.3 convention), so the first card in each array is played.
 function makeState(opts: {
@@ -30,12 +35,14 @@ function makeState(opts: {
   opponentStack: readonly Card[];
   chooser?: PlayerId;
   roundsPlayed?: number;
+  superTrumpCardId?: string;
 }): MatchState {
   const {
     chooserStack,
     opponentStack,
     chooser = ALICE,
     roundsPlayed = 0,
+    superTrumpCardId = NO_TRUMP_IN_PLAY,
   } = opts;
   const opponent = chooser === ALICE ? BOB : ALICE;
   return {
@@ -45,7 +52,7 @@ function makeState(opts: {
       [opponent]: opponentStack,
     },
     pot: [],
-    superTrumpCardId: 'monkey-d-luffy', // unused by round resolution in 1.4
+    superTrumpCardId,
     chooser,
     roundsPlayed,
     statDefinitions: onePieceDeck.stats,
@@ -66,6 +73,7 @@ const CHOPPER = cardById('tony-tony-chopper'); // age 17 (youngest used here)
 const BROOK = cardById('brook'); // age 90 (oldest used here)
 const LAW = cardById('trafalgar-d-water-law'); // bounty 3_000_000_000 (ties Luffy/Kid)
 const KID = cardById('eustass-kid'); // bounty 3_000_000_000
+const BUGGY = cardById('buggy-the-clown'); // the fixed Counter card (counterCard: true)
 
 describe('applyCommand — compare, higher wins (FR13, AC 1)', () => {
   it('chooser wins when their stat is higher (bounty: high wins)', () => {
@@ -269,5 +277,175 @@ describe('applyCommand — ties are deferred to story 1.6', () => {
     expect(() => applyCommand(state, selectStat(ALICE, 'bounty'))).toThrow(
       /1\.6/,
     );
+  });
+});
+
+describe('applyCommand — Super Trump auto-win (FR17, AC 1)', () => {
+  it('trump holder wins even when their stat would lose (chooser holds trump)', () => {
+    // NAMI (bounty 366e6) would lose to LUFFY (3e9) on bounty, but NAMI is the trump.
+    const state = makeState({
+      chooserStack: [NAMI],
+      opponentStack: [LUFFY],
+      superTrumpCardId: NAMI.id,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(ALICE);
+    expect(result.state.chooser).toBe(ALICE);
+  });
+
+  it('trump holder wins even when the opponent would win on stat (opponent holds trump)', () => {
+    // LUFFY (3e9) would beat NAMI (366e6) on bounty, but NAMI (opponent) is the trump.
+    const state = makeState({
+      chooserStack: [LUFFY],
+      opponentStack: [NAMI],
+      superTrumpCardId: NAMI.id,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(BOB);
+    expect(result.state.chooser).toBe(BOB);
+  });
+
+  it('trump wins a would-be tie — no throw (chooser holds trump)', () => {
+    // LAW and KID both have bounty 3e9 (a tie), but LAW is the trump -> chooser wins.
+    const state = makeState({
+      chooserStack: [LAW],
+      opponentStack: [KID],
+      superTrumpCardId: LAW.id,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(ALICE);
+  });
+
+  it('trump wins a would-be tie — no throw (opponent holds trump)', () => {
+    const state = makeState({
+      chooserStack: [LAW],
+      opponentStack: [KID],
+      superTrumpCardId: KID.id,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(BOB);
+  });
+});
+
+describe('applyCommand — Buggy counters the Super Trump (FR18, AC 2)', () => {
+  it('Buggy beats the trump when the chooser holds Buggy', () => {
+    // Trump = LUFFY (opponent). Buggy (chooser) is the Counter -> chooser wins.
+    const state = makeState({
+      chooserStack: [BUGGY],
+      opponentStack: [LUFFY],
+      superTrumpCardId: LUFFY.id,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(ALICE);
+    expect(result.state.chooser).toBe(ALICE);
+  });
+
+  it('Buggy beats the trump when the opponent holds Buggy', () => {
+    // Trump = LUFFY (chooser). Buggy (opponent) is the Counter -> opponent wins.
+    const state = makeState({
+      chooserStack: [LUFFY],
+      opponentStack: [BUGGY],
+      superTrumpCardId: LUFFY.id,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(BOB);
+    expect(result.state.chooser).toBe(BOB);
+  });
+
+  it('Buggy is an ordinary card when no Super Trump is in the round', () => {
+    // No trump in play. Buggy (haki 10) loses to LUFFY (haki 92) on haki:
+    // the Counter flag must do nothing without a trump present.
+    const state = makeState({
+      chooserStack: [BUGGY],
+      opponentStack: [LUFFY],
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'haki'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.lastRound?.winner).toBe(BOB);
+  });
+});
+
+describe('applyCommand — Super Trump round still obeys the 1.4 contract', () => {
+  it('transfers both cards to the trump winner and passes the turn (FR14, FR15)', () => {
+    // Chooser holds the trump (NAMI) and would lose on bounty, but wins by trump.
+    const state = makeState({
+      chooserStack: [NAMI, ZORO],
+      opponentStack: [LUFFY, USOPP],
+      superTrumpCardId: NAMI.id,
+      roundsPlayed: 3,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // Winner (ALICE): rest of own stack, then own played card, then opponent's.
+    expect(result.state.playerStacks[ALICE]).toEqual([ZORO, NAMI, LUFFY]);
+    expect(result.state.playerStacks[ALICE].slice(-2)).toEqual([NAMI, LUFFY]);
+    // Loser (BOB) lost only the top card.
+    expect(result.state.playerStacks[BOB]).toEqual([USOPP]);
+    expect(result.state.chooser).toBe(ALICE);
+    expect(result.state.roundsPlayed).toBe(4);
+
+    // Multiset conserved.
+    const before = [NAMI, ZORO, LUFFY, USOPP].map((c) => c.id).sort();
+    const after = [
+      ...result.state.playerStacks[ALICE],
+      ...result.state.playerStacks[BOB],
+    ]
+      .map((c) => c.id)
+      .sort();
+    expect(after).toEqual(before);
+  });
+
+  it('legality is still checked before resolution, even with a trump on top', () => {
+    // Trump on top, but the command comes from the non-chooser -> NOT_CHOOSER,
+    // and the state is untouched (no throw, no resolution).
+    const state = makeState({
+      chooserStack: [LUFFY],
+      opponentStack: [NAMI],
+      superTrumpCardId: LUFFY.id,
+    });
+    const snapshot = structuredClone(state);
+
+    const result = applyCommand(state, selectStat(BOB, 'bounty'));
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('NOT_CHOOSER');
+    expect(state).toEqual(snapshot);
+  });
+
+  it('does not mutate the input state on a trump win', () => {
+    const state = makeState({
+      chooserStack: [NAMI, ZORO],
+      opponentStack: [LUFFY, USOPP],
+      superTrumpCardId: NAMI.id,
+    });
+    const snapshot = structuredClone(state);
+
+    applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(state).toEqual(snapshot);
   });
 });

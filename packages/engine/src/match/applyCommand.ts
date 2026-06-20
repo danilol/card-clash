@@ -70,7 +70,6 @@ export function applyCommand(
     opponentStack.push(opponentPlayingCard);
   }
 
-
   const newPlayerStacks: Record<PlayerId, readonly Card[]> = {
     [chooserId]: chooserStack,
     [opponentId]: opponentStack,

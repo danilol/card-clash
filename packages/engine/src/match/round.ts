@@ -87,12 +87,27 @@ function superTrumpResolution(
   return resolution;
 }
 
-function resolveWinnerId(comparisonWinner: string | null, chooserId: PlayerId, opponentId: PlayerId): PlayerId | null {
-  const winnerId = comparisonWinner === 'chooser' ? chooserId : comparisonWinner === 'opponent' ? opponentId : null;
+function resolveWinnerId(
+  comparisonWinner: string | null,
+  chooserId: PlayerId,
+  opponentId: PlayerId,
+): PlayerId | null {
+  const winnerId =
+    comparisonWinner === 'chooser'
+      ? chooserId
+      : comparisonWinner === 'opponent'
+        ? opponentId
+        : null;
 
   return winnerId;
 }
 
-function trumpPlayedThisRound(chooserCard: Card, opponentCard: Card, superTrumpCardId: string): boolean {
-  return chooserCard.id === superTrumpCardId || opponentCard.id === superTrumpCardId;
+function trumpPlayedThisRound(
+  chooserCard: Card,
+  opponentCard: Card,
+  superTrumpCardId: string,
+): boolean {
+  return (
+    chooserCard.id === superTrumpCardId || opponentCard.id === superTrumpCardId
+  );
 }
