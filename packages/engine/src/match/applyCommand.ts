@@ -49,6 +49,7 @@ export function applyCommand(
     chooserPlayingCard,
     opponentId,
     opponentPlayingCard,
+    state.superTrumpCardId,
     def,
   );
 
@@ -68,7 +69,6 @@ export function applyCommand(
     opponentStack.push(chooserPlayingCard);
     opponentStack.push(opponentPlayingCard);
   }
-
 
   const newPlayerStacks: Record<PlayerId, readonly Card[]> = {
     [chooserId]: chooserStack,
