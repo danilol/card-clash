@@ -1,6 +1,6 @@
 # Story 1.5: The Super Trump and its Counter
 
-Status: in-progress
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -148,8 +148,8 @@ _Code review 2026-06-21 (3 parallel layers). Acceptance Auditor found **no spec 
 
 ### Patches
 
-- [ ] [Review][Patch][Low] Tighten the winner-token types in `round.ts` — `superTrumpResolution(): string | null` and `resolveWinnerId(comparisonWinner: string | null, …)` traffic in bare `string`. A typo like `'choser'` would compile and silently fall through to `null` (no winner). Use the existing literal union: `superTrumpResolution` returns `'chooser' | 'opponent' | null`, and `resolveWinnerId` takes `ComparisonResult | null` (`ComparisonResult` is already defined and used by `compareStats`). Restores the compiler safety the 1.4 code had.
-- [ ] [Review][Patch][Low] Make `superTrumpResolution`'s two branches mutually exclusive — the second `if (isSuperTrump(opponentCard…))` is independent of the first, so if both played cards ever matched `superTrumpCardId` the chooser branch's result would be silently overwritten. Cannot happen with unique ids + Buggy excluded from the draw (FR9), so it is defensive only. Use `else if` to make the intent explicit and guarantee the result is assigned exactly once.
+- [x] [Review][Patch][Low] Tighten the winner-token types in `round.ts` — **RESOLVED:** `superTrumpResolution(): 'chooser' | 'opponent' | null` and `resolveWinnerId(comparisonWinner: ComparisonResult | null, …)`.
+- [x] [Review][Patch][Low] Make `superTrumpResolution`'s two branches mutually exclusive — **RESOLVED:** second branch is now `else if`. Re-verified 2026-06-21: 86 tests green, typecheck clean.
 
 ### Dismissed (noise / by-design / unreachable)
 
