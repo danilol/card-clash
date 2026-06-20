@@ -49,6 +49,7 @@ export function applyCommand(
     chooserPlayingCard,
     opponentId,
     opponentPlayingCard,
+    state.superTrumpCardId,
     def,
   );
 
