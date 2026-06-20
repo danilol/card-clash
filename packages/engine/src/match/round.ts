@@ -74,13 +74,12 @@ function superTrumpResolution(
   chooserCard: Card,
   opponentCard: Card,
   superTrumpCardId: string,
-): string | null {
-  let resolution: string | null = null;
+): 'chooser' | 'opponent' | null {
+  let resolution: 'chooser' | 'opponent' | null = null;
   if (isSuperTrump(chooserCard, superTrumpCardId)) {
     resolution = opponentCard.counterCard ? 'opponent' : 'chooser';
   }
-
-  if (isSuperTrump(opponentCard, superTrumpCardId)) {
+  else if (isSuperTrump(opponentCard, superTrumpCardId)) {
     resolution = chooserCard.counterCard ? 'chooser' : 'opponent';
   }
 
@@ -88,7 +87,7 @@ function superTrumpResolution(
 }
 
 function resolveWinnerId(
-  comparisonWinner: string | null,
+  comparisonWinner: ComparisonResult | null,
   chooserId: PlayerId,
   opponentId: PlayerId,
 ): PlayerId | null {

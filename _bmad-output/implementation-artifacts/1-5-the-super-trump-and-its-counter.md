@@ -1,6 +1,6 @@
 # Story 1.5: The Super Trump and its Counter
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -141,3 +141,20 @@ N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement;
 - `packages/engine/src/match/round.ts` (modified — FR17/FR18 trump + counter resolution)
 - `packages/engine/src/match/applyCommand.ts` (modified — passes `superTrumpCardId` into resolution)
 - `packages/engine/src/match/applyCommand.test.ts` (modified — Super Trump / Counter test suite + `makeState` trump knob)
+
+## Review Findings
+
+_Code review 2026-06-21 (3 parallel layers). Acceptance Auditor found **no spec violations** — AC1 (FR17 auto-win incl. would-be tie, no 1.6 throw), AC2 (FR18 Buggy beats trump, both arrangements), AC3 (1.4 contract intact), and every constraint (trump logic in `round.ts`, no-throw core, purity, counter read via flag not name, naming, deep-readonly, `.js` imports, no new deps, scope) are satisfied. 86 tests green, typecheck clean. Only two low-severity cleanups._
+
+### Patches
+
+- [ ] [Review][Patch][Low] Tighten the winner-token types in `round.ts` — `superTrumpResolution(): string | null` and `resolveWinnerId(comparisonWinner: string | null, …)` traffic in bare `string`. A typo like `'choser'` would compile and silently fall through to `null` (no winner). Use the existing literal union: `superTrumpResolution` returns `'chooser' | 'opponent' | null`, and `resolveWinnerId` takes `ComparisonResult | null` (`ComparisonResult` is already defined and used by `compareStats`). Restores the compiler safety the 1.4 code had.
+- [ ] [Review][Patch][Low] Make `superTrumpResolution`'s two branches mutually exclusive — the second `if (isSuperTrump(opponentCard…))` is independent of the first, so if both played cards ever matched `superTrumpCardId` the chooser branch's result would be silently overwritten. Cannot happen with unique ids + Buggy excluded from the draw (FR9), so it is defensive only. Use `else if` to make the intent explicit and guarantee the result is assigned exactly once.
+
+### Dismissed (noise / by-design / unreachable)
+
+- Counter keyed off the `counterCard` flag rather than Buggy's id — **by design and spec-required** (no name hardcoding; theme seam).
+- Trump card being Buggy / the trump also carrying `counterCard` — impossible: FR9 excludes Buggy from the Super Trump draw.
+- "No trump in play" encoded as a non-matching id — a real match always has a Super Trump (`createMatch` always sets one); only a test sentinel concern.
+- `superTrumpResolution` returning `null` while a trump is in play — structurally impossible today (same predicate gates entry); the `else if` patch above also closes this.
+- A hypothetical second `counterCard:true` deck card — only Buggy carries the flag; future-deck speculation.
