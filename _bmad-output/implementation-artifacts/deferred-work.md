@@ -17,3 +17,8 @@
 ## Deferred from: code review of 1-3-match-setup-shuffle-deal-and-the-will-of-d (2026-06-12)
 
 - `Deck` type reachable via two import routes (`setup.ts` imports from `deck/deck.js` directly; the barrel exports it via `types.js` re-export). Same family as the 1.2 deferred circular-import item — one refactor away from drift. Revisit when the engine layout changes (e.g. 2.1 build wiring).
+
+## Deferred from: code review of 1-4-round-resolution-compare-transfer-pass-the-turn (2026-06-19)
+
+- Tie resolution `throw`s a hard `Error` in `applyCommand` (intentional placeholder per Task 4). Reachable in normal play: `onePieceDeck` has many duplicate stat values (bounty 0 ×3, bounty 3,000,000,000 ×4, plus repeated haki/loyalty/devilFruitMastery values), so a full seeded match will hit a tie before story 1.6 implements tie→pot mechanics. Resolve in 1.6.
+- No guards around empty/degenerate state in `applyCommand`: `shift()!` on an empty stack and `find()!` for the opponent both rely on the 2-player, non-empty invariant. A player reaching 0 cards (then acting again) would crash, and there is no end-of-match signal. Spec defers match-end / elimination to story 1.7.

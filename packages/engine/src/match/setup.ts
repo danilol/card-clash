@@ -57,9 +57,6 @@ export function createMatch(
  *
  * @param arr - the cards to shuffle (left unchanged)
  * @param rng - the random source; a seeded rng gives a repeatable shuffle
- *
- * @param arr - the cards to shuffle (left unchanged)
- * @param rng - the random source; a seeded rng gives a repeatable shuffle
  * @returns a new array with the same cards in random order
  */
 function fisherYatesShuffle(arr: Card[], rng: Rng): Card[] {

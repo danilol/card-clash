@@ -1,5 +1,6 @@
 import type {
   MatchState,
+  Command,
   SelectStatCommand,
   CommandResult,
   PlayerId,
@@ -10,7 +11,7 @@ import { compareCards } from './round.js';
 
 export function applyCommand(
   state: MatchState,
-  command: SelectStatCommand,
+  command: Command,
 ): CommandResult {
   if (command.playerId !== state.chooser) {
     return {
@@ -51,7 +52,12 @@ export function applyCommand(
     def,
   );
 
+  if (roundOutcome.winner === null) {
+    throw new Error('tie resolution lands in story 1.6');
+  }
+
   let newChooser: PlayerId = opponentId;
+
   if (roundOutcome.winner === chooserId) {
     chooserStack.push(chooserPlayingCard);
     chooserStack.push(opponentPlayingCard);
@@ -63,11 +69,6 @@ export function applyCommand(
     opponentStack.push(opponentPlayingCard);
   }
 
-  if (roundOutcome.winner === null) {
-    // chooserStack.push(chooserPlayingCard);
-    // opponentStack.push(opponentPlayingCard);
-    throw new Error('tie resolution lands in story 1.6');
-  }
 
   const newPlayerStacks: Record<PlayerId, readonly Card[]> = {
     [chooserId]: chooserStack,
@@ -77,7 +78,7 @@ export function applyCommand(
   const newMatchState: MatchState = {
     players: state.players,
     playerStacks: newPlayerStacks,
-    pot: [],
+    pot: state.pot,
     superTrumpCardId: state.superTrumpCardId,
     chooser: newChooser,
     roundsPlayed: state.roundsPlayed + 1,

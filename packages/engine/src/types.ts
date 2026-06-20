@@ -45,12 +45,12 @@ export type MatchState = {
 };
 
 export type SelectStatCommand = {
-  type: Command;
+  type: 'selectStat';
   playerId: PlayerId;
   stat: StatKey;
 };
 
-export type Command = 'selectStat' | 'start' | 'end';
+export type Command = SelectStatCommand;
 
 export type CommandResult =
   | { ok: true; state: MatchState }
