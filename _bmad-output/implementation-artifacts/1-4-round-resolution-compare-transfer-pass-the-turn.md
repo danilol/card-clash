@@ -1,6 +1,6 @@
 # Story 1.4: Round resolution — compare, transfer, pass the turn
 
-Status: in-progress
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -148,15 +148,23 @@ _Code review 2026-06-19 (3 parallel layers: Blind Hunter, Edge Case Hunter, Acce
 
 ### Decision needed
 
-- [ ] [Review][Decision] `Command`/`SelectStatCommand` discriminant shape deviates from spec — `types.ts:47-53` declares `Command = 'selectStat' | 'start' | 'end'` (a union of strings) and `SelectStatCommand.type: Command`. Spec Task 2 wants `Command` to be a discriminated *union of command object types* (`Command = SelectStatCommand | …`) with `SelectStatCommand.type: 'selectStat'` (a single literal), and Task 4 wants `applyCommand(state, command: Command)`. As written, `command.type` carries `'start' | 'end'` on every command so it cannot discriminate; the invented `'start'/'end'` members are out of scope (scope guard: "decided rounds only"); and `applyCommand` never checks `command.type`, so a wrong-`type` object is processed as a stat selection. Decide: align to the spec shape, or justify the deviation in the architecture.
+- [x] [Review][Decision] `Command`/`SelectStatCommand` discriminant shape deviates from spec — **RESOLVED (2026-06-21, commit 113b6a0):** chose to align to spec. `SelectStatCommand.type` is now the `'selectStat'` literal, `Command = SelectStatCommand`, and `applyCommand(state, command: Command)`. The invented `'start'/'end'` members are gone.
 
 ### Patches
 
-- [ ] [Review][Patch] Dead commented-out tie-push lines + tie check ordered after the transfer blocks [applyCommand.ts:55-61] — remove the commented `chooserStack.push`/`opponentStack.push` lines; consider checking the tie/`winner === null` case before the win/lose branches so the intent reads top-down.
-- [ ] [Review][Patch] `pot` is destructively reset instead of carried forward [applyCommand.ts:71] — `pot: []` discards `state.pot`. Harmless today (pot is always empty in 1.4) but use `pot: state.pot` so the field threads through until 1.6 defines real pot semantics.
-- [ ] [Review][Patch] Duplicated `@param` JSDoc block in `fisherYatesShuffle` [setup.ts:60-63] — the `@param arr` / `@param rng` pair is repeated verbatim; delete the duplicate.
+- [x] [Review][Patch] Dead commented-out tie-push lines + tie check ordered after the transfer blocks [applyCommand.ts:55-61] — **RESOLVED:** commented lines removed; `winner === null` tie throw now runs before the transfer branches.
+- [x] [Review][Patch] `pot` is destructively reset instead of carried forward [applyCommand.ts:71] — **RESOLVED:** now `pot: state.pot`.
+- [x] [Review][Patch] Duplicated `@param` JSDoc block in `fisherYatesShuffle` [setup.ts:60-63] — **RESOLVED:** duplicate pair deleted.
 
 ### Deferred
 
 - [x] [Review][Defer] Tie throws a hard `Error`, and the shipped deck makes ties common in real play [applyCommand.ts:60] — deferred, accepted per Task 4 (tie→pot lands in 1.6). Note: duplicate stat values are frequent in `onePieceDeck` (bounty 0 ×3, bounty 3e9 ×4, etc.), so a full real match will hit the placeholder before 1.6 ships.
 - [x] [Review][Defer] Unchecked `shift()!` / `find()!` non-null assertions can crash on a degenerate/empty-stack state; no end-of-match signal when a player reaches 0 cards [applyCommand.ts:28,34-35] — deferred, spec-acknowledged as story 1.7 scope (match end / elimination). In 1.4 the state simply records it.
+
+### Re-review (2026-06-21)
+
+All four prior items resolved and re-verified by all three layers; AC1/AC2/AC3 and constraints still satisfied, typecheck clean, 76 tests green. No new blocking/HIGH/MEDIUM issues. The Medium-rated re-review findings (NaN-stat resolution, duplicate/>2 player ids, float-tie drift) are all unreachable with type-abiding decks (`Card.stats` is total `Record<StatKey, number>`, integer values) or out of scope (engine trusts a well-formed 2-player state; shape validation lands at the 2.x zod boundary) — dismissed. Optional polish only:
+
+- [ ] [Review][Patch][Trivial] Unused `SelectStatCommand` import in `applyCommand.ts` (the param is now `Command`) — drop it.
+- [ ] [Review][Patch][Trivial] Stray double blank line in `applyCommand.ts` (between the opponent-win block and `newPlayerStacks`) — `npm run format` collapses it.
+- [ ] [Review][Patch][Trivial] `ComparisonResult` lives in `types.ts` but is only used by `round.ts` — consider moving it next to `compareStats`. Optional.
