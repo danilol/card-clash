@@ -9,6 +9,8 @@ import type {
   StatKey,
 } from '../types.js';
 import { applyCommand } from './applyCommand.js';
+import { createMatch } from './setup.js';
+import { mulberry32 } from '../rng.js';
 
 // Player ids are deliberately not 'player1'/'player2': applyCommand must work
 // with whatever ids the state carries, never invented ones.
@@ -37,6 +39,7 @@ function makeState(opts: {
   roundsPlayed?: number;
   superTrumpCardId?: string;
   pot?: readonly Card[];
+  result?: MatchState['result'];
 }): MatchState {
   const {
     chooserStack,
@@ -45,6 +48,7 @@ function makeState(opts: {
     roundsPlayed = 0,
     superTrumpCardId = NO_TRUMP_IN_PLAY,
     pot = [],
+    result = null,
   } = opts;
   const opponent = chooser === ALICE ? BOB : ALICE;
   return {
@@ -59,8 +63,13 @@ function makeState(opts: {
     roundsPlayed,
     statDefinitions: onePieceDeck.stats,
     lastRound: null,
+    result,
   };
 }
+
+// The full 32-card deck — match-end tests need realistic stack totals so a
+// conquest leaves the winner holding all 32 cards.
+const ALL = onePieceDeck.cards;
 
 function selectStat(playerId: PlayerId, stat: StatKey): SelectStatCommand {
   return { type: 'selectStat', playerId, stat };
@@ -621,5 +630,146 @@ describe('applyCommand — Super Trump round still obeys the 1.4 contract', () =
     applyCommand(state, selectStat(ALICE, 'bounty'));
 
     expect(state).toEqual(snapshot);
+  });
+});
+
+function allCardIds(state: MatchState): string[] {
+  return [
+    ...state.players.flatMap((p) => state.playerStacks[p]),
+    ...state.pot,
+  ]
+    .map((c) => c.id)
+    .sort();
+}
+
+const DECK_IDS = ALL.map((c) => c.id).sort();
+
+describe('applyCommand — conquest ends the match (FR24, AC 1)', () => {
+  it('a decided round that empties the loser ends with allCards, winner holds all 32', () => {
+    // Chooser holds 31 cards, opponent holds the last one. Chooser wins on
+    // bounty (LUFFY 3e9 > Mr. 2 32e6), so the opponent drops to zero.
+    const state = makeState({
+      chooserStack: ALL.slice(0, 31),
+      opponentStack: ALL.slice(31),
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.result).toEqual({ winner: ALICE, reason: 'allCards' });
+    expect(result.state.playerStacks[ALICE]).toHaveLength(32);
+    expect(result.state.playerStacks[BOB]).toHaveLength(0);
+    expect(result.state.pot).toEqual([]);
+    expect(allCardIds(result.state)).toEqual(DECK_IDS);
+  });
+
+  it('works in the mirror direction (opponent conquers)', () => {
+    // Opponent holds 31, chooser holds the last. Chooser plays Mr. 2 and loses
+    // on bounty to LUFFY, dropping the chooser to zero.
+    const state = makeState({
+      chooserStack: ALL.slice(31),
+      opponentStack: ALL.slice(0, 31),
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.result).toEqual({ winner: BOB, reason: 'allCards' });
+    expect(result.state.playerStacks[BOB]).toHaveLength(32);
+    expect(result.state.playerStacks[ALICE]).toHaveLength(0);
+  });
+});
+
+describe('applyCommand — the round cap (FR25, AC 2)', () => {
+  it('round 100 with unequal stacks: larger stack wins with reason roundCap', () => {
+    // 20 vs 12. roundsPlayed 99 -> the decided round makes it 100 (21 vs 11).
+    const state = makeState({
+      chooserStack: ALL.slice(0, 20),
+      opponentStack: ALL.slice(20),
+      roundsPlayed: 99,
+    });
+    // LUFFY beats Eustass Kid on loyalty (98 vs 85) — bounty would tie at 3e9.
+    const result = applyCommand(state, selectStat(ALICE, 'loyalty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.roundsPlayed).toBe(100);
+    expect(result.state.result).toEqual({ winner: ALICE, reason: 'roundCap' });
+    expect(result.state.playerStacks[ALICE]).toHaveLength(21);
+    expect(result.state.playerStacks[BOB]).toHaveLength(11);
+    expect(allCardIds(result.state)).toEqual(DECK_IDS);
+  });
+
+  it('round 100 with EQUAL stacks: no winner yet — sudden death continues', () => {
+    // 15 vs 17. Chooser wins the decided round -> 16 vs 16 at roundsPlayed 100.
+    // FR25: equal stacks must NOT end the match (play continues).
+    const state = makeState({
+      chooserStack: ALL.slice(0, 15),
+      opponentStack: ALL.slice(15),
+      roundsPlayed: 99,
+    });
+    let result: ReturnType<typeof applyCommand> | undefined;
+    expect(() => {
+      result = applyCommand(state, selectStat(ALICE, 'loyalty'));
+    }).not.toThrow();
+
+    expect(result?.ok).toBe(true);
+    if (!result || !result.ok) return;
+    expect(result.state.playerStacks[ALICE]).toHaveLength(16);
+    expect(result.state.playerStacks[BOB]).toHaveLength(16);
+    expect(result.state.result).toBeNull(); // sudden death, still active
+  });
+});
+
+describe('applyCommand — a finished match is closed (AC 5)', () => {
+  it('rejects any command on an ended state with MATCH_OVER and no throw', () => {
+    const state = makeState({
+      chooserStack: [LUFFY],
+      opponentStack: [NAMI],
+      result: { winner: ALICE, reason: 'allCards' },
+    });
+    const snapshot = structuredClone(state);
+
+    let result: ReturnType<typeof applyCommand> | undefined;
+    expect(() => {
+      result = applyCommand(state, selectStat(ALICE, 'bounty'));
+    }).not.toThrow();
+
+    expect(result?.ok).toBe(false);
+    if (!result || result.ok) return;
+    expect(result.error.code).toBe('MATCH_OVER');
+    expect(state).toEqual(snapshot); // untouched
+  });
+});
+
+describe('applyCommand — full match plays to a clean finish (FR25b)', () => {
+  it('every seeded match terminates, conserves all 32 cards, and ends with a valid result', () => {
+    const reasons = new Set<string>();
+    for (let seed = 1; seed <= 25; seed++) {
+      let state = createMatch(onePieceDeck, [ALICE, BOB], mulberry32(seed));
+      let command = 0;
+      const MAX = 5000; // bound the loop so a non-termination bug fails loudly
+
+      while (state.result === null && command < MAX) {
+        // Conservation must hold before AND after every command.
+        expect(allCardIds(state)).toEqual(DECK_IDS);
+        const stat = state.statDefinitions[command % state.statDefinitions.length].key;
+        const res = applyCommand(state, selectStat(state.chooser, stat));
+        expect(res.ok).toBe(true);
+        if (!res.ok) return;
+        state = res.state;
+        command++;
+      }
+
+      expect(state.result).not.toBeNull(); // terminated within MAX
+      if (state.result === null) return;
+      expect([ALICE, BOB]).toContain(state.result.winner);
+      expect(['allCards', 'roundCap']).toContain(state.result.reason);
+      expect(state.pot).toEqual([]); // FR25b: pot swept on end
+      expect(allCardIds(state)).toEqual(DECK_IDS); // all 32 accounted for
+      reasons.add(state.result.reason);
+    }
+    // Sanity: at least one of the seeds actually finished by conquest.
+    expect(reasons.has('allCards')).toBe(true);
   });
 });

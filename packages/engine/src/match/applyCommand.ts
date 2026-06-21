@@ -5,6 +5,7 @@ import type {
   PlayerId,
   RoundOutcome,
   Card,
+  MatchResult,
 } from '../types.js';
 import { compareCards } from './round.js';
 
@@ -12,6 +13,15 @@ export function applyCommand(
   state: MatchState,
   command: Command,
 ): CommandResult {
+  if (state.result !== null) {
+    return {
+      ok: false,
+      error: {
+        code: 'MATCH_OVER',
+        message: 'Match is already over',
+      },
+    };
+  }
   if (command.playerId !== state.chooser) {
     return {
       ok: false,
@@ -37,13 +47,13 @@ export function applyCommand(
   const opponentId: PlayerId = state.players.find((p) => p !== chooserId)!;
 
   // create shallow copies to avoid mutating the original arrays
-  const chooserStack = [...state.playerStacks[chooserId]];
-  const opponentStack = [...state.playerStacks[opponentId]];
+  const chooserStack: Card[] = [...state.playerStacks[chooserId]];
+  const opponentStack: Card[] = [...state.playerStacks[opponentId]];
 
-  const chooserPlayedCard = chooserStack.shift()!;
-  const opponentPlayedCard = opponentStack.shift()!;
+  const chooserPlayedCard: Card = chooserStack.shift()!;
+  const opponentPlayedCard: Card = opponentStack.shift()!;
 
-  let newPot = [...state.pot];
+  let newPot: Card[] = [...state.pot];
 
   const roundOutcome: RoundOutcome = compareCards(
     chooserId,
@@ -55,7 +65,8 @@ export function applyCommand(
   );
 
   let newChooser: PlayerId = opponentId;
-  let roundsPlayedCounter = state.roundsPlayed;
+  let roundsPlayedCounter: number = state.roundsPlayed;
+  let matchResult: MatchResult | null = null;
 
   if (roundOutcome.winner === null) {
     newChooser = chooserId; // if draw, chooser gets to go again
@@ -100,6 +111,18 @@ export function applyCommand(
     roundsPlayedCounter++;
   }
 
+   if (conquestResultHappened(chooserStack, opponentStack)) {
+    matchResult = {
+      winner: conquestResultWinner(chooserStack, chooserId, opponentStack, opponentId),
+      reason: 'allCards',
+    };
+   } else if (roundCapResultHappened(roundsPlayedCounter, chooserStack, opponentStack)) {
+    matchResult = {
+      winner: roundCapResultWinner(chooserStack, chooserId, opponentStack, opponentId),
+      reason: 'roundCap',
+    };
+   }
+
   const newPlayerStacks: Record<PlayerId, readonly Card[]> = {
     [chooserId]: chooserStack,
     [opponentId]: opponentStack,
@@ -114,6 +137,7 @@ export function applyCommand(
     roundsPlayed: roundsPlayedCounter,
     statDefinitions: state.statDefinitions,
     lastRound: roundOutcome,
+    result: matchResult,
   };
 
   return { ok: true, state: newMatchState };
@@ -127,3 +151,48 @@ function addCardsToWinnerStack(
 ): void {
   winnerStack.push(...pot, chooserCard, opponentCard);
 }
+
+function conquestResultHappened(chooserStack: Card[], opponentStack: Card[]) : boolean {
+  if ((playerHasEmptyStack(chooserStack))||
+      (playerHasEmptyStack(opponentStack))) {
+    return true;
+  }
+
+  return false;
+}
+
+function conquestResultWinner(chooserStack: Card[], chooserId: PlayerId, opponentStack: Card[], opponentId: PlayerId) : PlayerId {
+  if (playerHasEmptyStack(chooserStack)) {
+    return opponentId;
+  }
+
+  if (playerHasEmptyStack(opponentStack)) {
+    return chooserId;
+  }
+
+  throw new Error('Conquest result happened but no winner found');
+}
+
+function playerHasEmptyStack(stack: Card[]): boolean {
+  return stack.length === 0;
+}
+
+function roundCapResultHappened(roundsPlayed: number, chooserStack: Card[], opponentStack: Card[]): boolean {
+  return roundsPlayed >= 100 && chooserStack.length !== opponentStack.length;
+}
+
+function roundCapResultWinner(chooserStack: Card[], chooserId: PlayerId, opponentStack: Card[], opponentId: PlayerId) : PlayerId {
+
+  if (chooserStack.length > opponentStack.length) {
+    return chooserId;
+  }
+
+  if (opponentStack.length > chooserStack.length) {
+    return opponentId;
+  }
+
+  throw new Error('Round cap result happened but no winner found');
+}
+
+
+

@@ -31,6 +31,7 @@ export function createMatch(
     roundsPlayed: 0,
     statDefinitions: deck.stats,
     lastRound: null,
+    result: null,
   };
 
   return match;
