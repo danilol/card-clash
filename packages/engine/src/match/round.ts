@@ -78,8 +78,7 @@ function superTrumpResolution(
   let resolution: 'chooser' | 'opponent' | null = null;
   if (isSuperTrump(chooserCard, superTrumpCardId)) {
     resolution = opponentCard.counterCard ? 'opponent' : 'chooser';
-  }
-  else if (isSuperTrump(opponentCard, superTrumpCardId)) {
+  } else if (isSuperTrump(opponentCard, superTrumpCardId)) {
     resolution = chooserCard.counterCard ? 'chooser' : 'opponent';
   }
 

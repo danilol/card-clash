@@ -36,6 +36,7 @@ function makeState(opts: {
   chooser?: PlayerId;
   roundsPlayed?: number;
   superTrumpCardId?: string;
+  pot?: readonly Card[];
 }): MatchState {
   const {
     chooserStack,
@@ -43,6 +44,7 @@ function makeState(opts: {
     chooser = ALICE,
     roundsPlayed = 0,
     superTrumpCardId = NO_TRUMP_IN_PLAY,
+    pot = [],
   } = opts;
   const opponent = chooser === ALICE ? BOB : ALICE;
   return {
@@ -51,7 +53,7 @@ function makeState(opts: {
       [chooser]: chooserStack,
       [opponent]: opponentStack,
     },
-    pot: [],
+    pot,
     superTrumpCardId,
     chooser,
     roundsPlayed,
@@ -73,6 +75,7 @@ const CHOPPER = cardById('tony-tony-chopper'); // age 17 (youngest used here)
 const BROOK = cardById('brook'); // age 90 (oldest used here)
 const LAW = cardById('trafalgar-d-water-law'); // bounty 3_000_000_000 (ties Luffy/Kid)
 const KID = cardById('eustass-kid'); // bounty 3_000_000_000
+const KUZAN = cardById('kuzan-aokiji'); // bounty 3_000_000_000 (fourth tie card)
 const BUGGY = cardById('buggy-the-clown'); // the fixed Counter card (counterCard: true)
 
 describe('applyCommand — compare, higher wins (FR13, AC 1)', () => {
@@ -270,13 +273,184 @@ describe('applyCommand — purity (functional core)', () => {
   });
 });
 
-describe('applyCommand — ties are deferred to story 1.6', () => {
-  it('throws the loud placeholder when the chosen stat ties', () => {
-    // LAW and KID both have bounty 3_000_000_000 -> a tie.
-    const state = makeState({ chooserStack: [LAW], opponentStack: [KID] });
-    expect(() => applyCommand(state, selectStat(ALICE, 'bounty'))).toThrow(
-      /1\.6/,
-    );
+describe('applyCommand — a tie feeds the pot (FR20, AC 1)', () => {
+  it('moves both played cards to the pot and keeps the same chooser', () => {
+    // LAW and KID both have bounty 3_000_000_000 -> a tie. Both players keep a
+    // next card, so this is an ordinary tie (not an elimination).
+    const state = makeState({
+      chooserStack: [LAW, ZORO],
+      opponentStack: [KID, NAMI],
+      roundsPlayed: 7,
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // Both top cards moved to the pot, chooser card first (the chosen order).
+    expect(result.state.pot).toEqual([LAW, KID]);
+    // Each stack lost only its top card.
+    expect(result.state.playerStacks[ALICE]).toEqual([ZORO]);
+    expect(result.state.playerStacks[BOB]).toEqual([NAMI]);
+    // The same chooser keeps the turn (FR21).
+    expect(result.state.chooser).toBe(ALICE);
+    // A tie is recorded as winner = null and does not count as a decided round.
+    expect(result.state.lastRound?.winner).toBeNull();
+    expect(result.state.roundsPlayed).toBe(7);
+  });
+
+  it('does not throw on a tie and does not mutate the input state', () => {
+    const state = makeState({
+      chooserStack: [LAW, ZORO],
+      opponentStack: [KID, NAMI],
+    });
+    const snapshot = structuredClone(state);
+
+    expect(() =>
+      applyCommand(state, selectStat(ALICE, 'bounty')),
+    ).not.toThrow();
+    expect(state).toEqual(snapshot);
+  });
+});
+
+describe('applyCommand — the winner sweeps the pot (FR21, AC 2)', () => {
+  it('a decided stat round takes the played cards then the whole pot', () => {
+    // Pot already holds two cards from earlier ties. LUFFY (3e9) beats NAMI
+    // (366e6) on bounty -> chooser wins and sweeps the pot.
+    const state = makeState({
+      chooserStack: [LUFFY],
+      opponentStack: [NAMI],
+      pot: [CHOPPER, BROOK],
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // Winner's bottom: the pot (in order), then chooser's card, then opponent's.
+    expect(result.state.playerStacks[ALICE]).toEqual([
+      CHOPPER,
+      BROOK,
+      LUFFY,
+      NAMI,
+    ]);
+    expect(result.state.playerStacks[BOB]).toEqual([]);
+    expect(result.state.pot).toEqual([]);
+
+    // Multiset conserved.
+    const before = [LUFFY, NAMI, CHOPPER, BROOK].map((c) => c.id).sort();
+    const after = [
+      ...result.state.playerStacks[ALICE],
+      ...result.state.playerStacks[BOB],
+      ...result.state.pot,
+    ]
+      .map((c) => c.id)
+      .sort();
+    expect(after).toEqual(before);
+  });
+
+  it('a Super Trump win also sweeps the pot', () => {
+    // NAMI is the trump and would lose on bounty, but wins by trump and sweeps.
+    const state = makeState({
+      chooserStack: [NAMI],
+      opponentStack: [LUFFY],
+      superTrumpCardId: NAMI.id,
+      pot: [CHOPPER, BROOK],
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.playerStacks[ALICE]).toEqual([
+      CHOPPER,
+      BROOK,
+      NAMI,
+      LUFFY,
+    ]);
+    expect(result.state.pot).toEqual([]);
+  });
+});
+
+describe('applyCommand — ties chain (FR22, AC 3)', () => {
+  it('two ties grow the pot, then a decided round sweeps all of it', () => {
+    // Four bounty-3e9 cards force two ties; ZORO (1.111e9) then decides.
+    let state = makeState({
+      chooserStack: [LAW, LUFFY, ZORO],
+      opponentStack: [KID, KUZAN, NAMI],
+    });
+
+    // Round 1: LAW vs KID -> tie.
+    let result = applyCommand(state, selectStat(ALICE, 'bounty'));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.pot).toEqual([LAW, KID]);
+    state = result.state;
+
+    // Round 2: LUFFY vs KUZAN -> tie, pot keeps growing.
+    result = applyCommand(state, selectStat(ALICE, 'bounty'));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.pot).toEqual([LAW, KID, LUFFY, KUZAN]);
+    state = result.state;
+
+    // Round 3: ZORO (1.111e9) beats NAMI (366e6) -> chooser sweeps everything.
+    result = applyCommand(state, selectStat(ALICE, 'bounty'));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.pot).toEqual([]);
+    // Pot (in accumulation order) first, then this round's chooser and opponent.
+    expect(result.state.playerStacks[ALICE]).toEqual([
+      LAW,
+      KID,
+      LUFFY,
+      KUZAN,
+      ZORO,
+      NAMI,
+    ]);
+    expect(result.state.playerStacks[BOB]).toEqual([]);
+  });
+});
+
+describe('applyCommand — a tie that cannot continue eliminates a player (FR23, AC 4)', () => {
+  it('chooser runs out mid-tie: opponent collects all cards in play + pot', () => {
+    // Chooser plays its last card into a tie -> cannot continue -> eliminated.
+    const state = makeState({
+      chooserStack: [LAW],
+      opponentStack: [KID, NAMI],
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.state.playerStacks[ALICE]).toEqual([]); // eliminated
+    // Opponent keeps their remaining stack, then pot (empty), chooser, opponent.
+    expect(result.state.playerStacks[BOB]).toEqual([NAMI, LAW, KID]);
+    expect(result.state.pot).toEqual([]);
+
+    const after = [
+      ...result.state.playerStacks[ALICE],
+      ...result.state.playerStacks[BOB],
+      ...result.state.pot,
+    ]
+      .map((c) => c.id)
+      .sort();
+    expect(after).toEqual([LAW, KID, NAMI].map((c) => c.id).sort());
+  });
+
+  it('opponent runs out mid-tie: chooser collects all cards in play + pot', () => {
+    const state = makeState({
+      chooserStack: [LAW, ZORO],
+      opponentStack: [KID],
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.state.playerStacks[BOB]).toEqual([]); // eliminated
+    expect(result.state.playerStacks[ALICE]).toEqual([ZORO, LAW, KID]);
+    expect(result.state.pot).toEqual([]);
   });
 });
 

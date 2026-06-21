@@ -1,7 +1,6 @@
 import type {
   MatchState,
   Command,
-  SelectStatCommand,
   CommandResult,
   PlayerId,
   RoundOutcome,
@@ -41,33 +40,68 @@ export function applyCommand(
   const chooserStack = [...state.playerStacks[chooserId]];
   const opponentStack = [...state.playerStacks[opponentId]];
 
-  const chooserPlayingCard = chooserStack.shift()!;
-  const opponentPlayingCard = opponentStack.shift()!;
+  const chooserPlayedCard = chooserStack.shift()!;
+  const opponentPlayedCard = opponentStack.shift()!;
+
+  let newPot = [...state.pot];
 
   const roundOutcome: RoundOutcome = compareCards(
     chooserId,
-    chooserPlayingCard,
+    chooserPlayedCard,
     opponentId,
-    opponentPlayingCard,
+    opponentPlayedCard,
     state.superTrumpCardId,
     def,
   );
 
+  let newChooser: PlayerId = opponentId;
+  let roundsPlayedCounter = state.roundsPlayed;
+
   if (roundOutcome.winner === null) {
-    throw new Error('tie resolution lands in story 1.6');
+    newChooser = chooserId; // if draw, chooser gets to go again
+
+    if (chooserStack.length === 0) {
+      addCardsToWinnerStack(
+        opponentStack,
+        chooserPlayedCard,
+        opponentPlayedCard,
+        newPot,
+      );
+      newPot = [];
+    } else if (opponentStack.length === 0) {
+      addCardsToWinnerStack(
+        chooserStack,
+        chooserPlayedCard,
+        opponentPlayedCard,
+        newPot,
+      );
+      newPot = [];
+    } else {
+      newPot = [...state.pot, chooserPlayedCard, opponentPlayedCard];
+    }
   }
 
-  let newChooser: PlayerId = opponentId;
-
   if (roundOutcome.winner === chooserId) {
-    chooserStack.push(chooserPlayingCard);
-    chooserStack.push(opponentPlayingCard);
-    newChooser = chooserId;
+    addCardsToWinnerStack(
+      chooserStack,
+      chooserPlayedCard,
+      opponentPlayedCard,
+      newPot,
+    );
+    newChooser = chooserId; // if chooser wins, they get to go again
+    newPot = [];
+    roundsPlayedCounter++;
   }
 
   if (roundOutcome.winner === opponentId) {
-    opponentStack.push(chooserPlayingCard);
-    opponentStack.push(opponentPlayingCard);
+    addCardsToWinnerStack(
+      opponentStack,
+      chooserPlayedCard,
+      opponentPlayedCard,
+      newPot,
+    );
+    newPot = [];
+    roundsPlayedCounter++;
   }
 
   const newPlayerStacks: Record<PlayerId, readonly Card[]> = {
@@ -78,13 +112,22 @@ export function applyCommand(
   const newMatchState: MatchState = {
     players: state.players,
     playerStacks: newPlayerStacks,
-    pot: state.pot,
+    pot: newPot,
     superTrumpCardId: state.superTrumpCardId,
     chooser: newChooser,
-    roundsPlayed: state.roundsPlayed + 1,
+    roundsPlayed: roundsPlayedCounter,
     statDefinitions: state.statDefinitions,
     lastRound: roundOutcome,
   };
 
   return { ok: true, state: newMatchState };
+}
+
+function addCardsToWinnerStack(
+  winnerStack: Card[],
+  chooserCard: Card,
+  opponentCard: Card,
+  pot: Card[],
+): void {
+  winnerStack.push(...pot, chooserCard, opponentCard);
 }
