@@ -42,6 +42,7 @@ export type MatchState = {
   readonly roundsPlayed: number;
   readonly statDefinitions: readonly StatDefinition[];
   readonly lastRound: RoundOutcome | null; // first round is null, every subsequent round has a value
+  readonly result: MatchResult | null;
 };
 
 export type SelectStatCommand = {
@@ -56,7 +57,7 @@ export type CommandResult =
   | { ok: true; state: MatchState }
   | { ok: false; error: { code: CommandErrorCode; message: string } };
 
-export type CommandErrorCode = 'NOT_CHOOSER' | 'INVALID_STAT';
+export type CommandErrorCode = 'MATCH_OVER' | 'NOT_CHOOSER' | 'INVALID_STAT';
 
 export type RoundOutcome = {
   stat: StatKey;
@@ -65,3 +66,10 @@ export type RoundOutcome = {
 };
 
 export type ComparisonResult = 'chooser' | 'opponent' | 'tie';
+
+export type MatchResult = {
+  winner: PlayerId;
+  reason: EndReason;
+};
+
+export type EndReason = 'allCards' | 'roundCap';

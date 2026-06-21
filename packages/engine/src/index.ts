@@ -10,6 +10,8 @@ export type {
   CommandResult,
   CommandErrorCode,
   RoundOutcome,
+  EndReason,
+  MatchResult,
 } from './types.js';
 export { defaultRng, mulberry32, type Rng } from './rng.js';
 
