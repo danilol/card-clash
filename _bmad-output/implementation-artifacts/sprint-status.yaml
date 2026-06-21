@@ -43,7 +43,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: The Game's Brain — a provably correct rules engine
-  epic-1: in-progress
+  epic-1: done
   1-1-monorepo-foundation-with-a-proven-test-harness: done
   1-2-the-32-card-one-piece-deck-as-typed-data: done
   1-3-match-setup-shuffle-deal-and-the-will-of-d: done
@@ -51,7 +51,7 @@ development_status:
   1-5-the-super-trump-and-its-counter: done
   1-6-ties-and-the-grand-line-pot: done
   1-7-match-end-every-way-a-game-can-finish: done
-  1-8-projection-what-each-player-is-allowed-to-see: backlog
+  1-8-projection-what-each-player-is-allowed-to-see: done
   epic-1-retrospective: optional
 
   # Epic 2: Play It — two friends battle over a shared link
