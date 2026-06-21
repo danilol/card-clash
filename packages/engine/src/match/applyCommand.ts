@@ -79,9 +79,7 @@ export function applyCommand(
     } else {
       newPot = [...state.pot, chooserPlayedCard, opponentPlayedCard];
     }
-  }
-
-  if (roundOutcome.winner === chooserId) {
+  } else if (roundOutcome.winner === chooserId) {
     addCardsToWinnerStack(
       chooserStack,
       chooserPlayedCard,
@@ -91,9 +89,7 @@ export function applyCommand(
     newChooser = chooserId; // if chooser wins, they get to go again
     newPot = [];
     roundsPlayedCounter++;
-  }
-
-  if (roundOutcome.winner === opponentId) {
+  } else if (roundOutcome.winner === opponentId) {
     addCardsToWinnerStack(
       opponentStack,
       chooserPlayedCard,

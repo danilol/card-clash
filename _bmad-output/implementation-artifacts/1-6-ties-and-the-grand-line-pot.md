@@ -1,6 +1,6 @@
 3# Story 1.6: Ties and the Grand Line pot
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -126,6 +126,31 @@ N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement;
 1a — Decision: append to the winner's stack bottom as pot cards first (oldest tie cards, in the order they accumulated), then this round's chooser card, then the opponent card
 1b — Decision: append `chooserPlayedCard` then `opponentPlayedCard` (same pair order as 1.4)
 1c — Decision: roundsPlayed does not increment on a tie. It only increments on decided rounds.
-1d/1e — FR23 card movement (a tie that can't continue → opponent collects all cards in play + pot) is implemented here, per AC4. Only the match-end representation (ended/endReason) and the both-empty edge are deferred to story 1.7.
+1d/1e — FR23 card movement (a tie that can't continue → opponent collects all cards in play + pot) is implemented here, per AC4. Only the match-end representation (ended/endReason) is deferred to story 1.7. Both-empty edge: the code has a safe, non-crashing fallback — because `chooserStack.length === 0` is checked before `opponentStack.length === 0`, a tie that empties both stacks resolves as opponent-takes-all (multiset still conserved). The proper draw / sudden-death *rule* (FR25) still lands in 1.7.
 
 ### File List
+
+- `packages/engine/src/match/applyCommand.ts` (tie→pot, pot sweep, FR23 elimination, `addCardsToWinnerStack` helper)
+- `packages/engine/src/match/round.ts` (whitespace reformat only)
+- `packages/engine/src/match/applyCommand.test.ts` (tie/pot/chain/FR23 suite; `makeState` `pot` knob)
+
+## Review Findings
+
+_Code review 2026-06-21 (3 parallel layers). **AC1–5 all satisfied**; code matches recorded decisions 1a–1d; the tie throw is removed (no throw on any legal play path); purity and 32-card multiset conservation verified on every path. 92 tests green, typecheck clean. No decision-needed; findings are low-severity._
+
+### Patches (optional, Low)
+
+- [x] [Review][Patch][Low] Make the `winner === …` blocks mutually exclusive — **RESOLVED:** now an `if / else if / else if` chain (no bare `else` — the explicit `=== opponentId` is clearer and avoids assuming the catch-all is the opponent).
+- [x] [Review][Patch][Low] Clarify Completion Note 1e — **RESOLVED:** note now records the both-empty fallback (opponent-takes-all via branch order), with the draw/sudden-death rule still deferred to 1.7.
+
+### Deferred (to story 1.7 — match end)
+
+- [x] [Review][Defer] Both-empty tie produces an arbitrary winner (opponent-takes-all by branch order) rather than a draw/sudden-death — accepted per decision 1e; does not crash or lose cards (multiset conserved). The real draw / sudden-death rule (FR25) lands in 1.7.
+- [x] [Review][Defer] `shift()!` on an already-finished (0-card) state would crash — an FR23 elimination legitimately produces a 0-card player, and calling `applyCommand` again on that state hits the unguarded `shift()!`. The match-end guard (`ended`/`endReason`, FR24) that prevents acting on a finished match is story 1.7. (Same family as the 1.4-review defer.)
+- [x] [Review][Defer] `lastRound.winner === null` cannot distinguish a pushed tie from an FR23 elimination — 1.7's end-detection should read stack sizes (FR24), not `lastRound`. Noted so 1.7 does not rely on `lastRound.winner` for elimination.
+
+### Dismissed (by-design / safe)
+
+- `roundsPlayed` not incremented on a tie (incl. elimination-tie) — consistent with recorded decision 1c (ties don't count).
+- `addCardsToWinnerStack` params typed `Card[]` (mutable) — correct: it `push`es into freshly-built local copies, never `state.pot` or input stacks; `readonly` would forbid the `push`.
+- "Two winner branches could fire" — proven impossible (`winner` holds a single value).
