@@ -1,4 +1,4 @@
-import type { Card, MatchState, PlayerId, PlayerView } from '../types.js';
+import type { MatchState, PlayerId, PlayerView } from '../types.js';
 
 export function projectFor(state: MatchState, viewerId: PlayerId): PlayerView {
   if (!state.players.includes(viewerId)) {
