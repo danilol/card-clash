@@ -59,15 +59,16 @@ so that every later story builds on a live loop I can see working.
   - [ ] Create the socket client (`socket.io-client`) pointing at the server origin. Set up `useReducer` + context for app state; the status starts at `connecting`.
   - [ ] On the socket's `connect` event dispatch the "connected" action; on `disconnect` dispatch "disconnected". Render the current status text on the page (plain text is fine — no styling needed).
   - [ ] Keep ALL UI state in this one reducer (architecture rule: one reducer owns connection + screen + snapshot; in 2.1 it owns just the connection status).
-- [ ] Task 6: Tests — AI-permitted
-  - [ ] Server: a test that `GET /api/health` returns 200 (e.g. `supertest` against the Express app, or a `fetch` against a started server). Keep it fast and self-contained.
-  - [ ] Client reducer: a pure unit test — from `connecting`, a "connected" action → `connected`; a "disconnected" action → `disconnected`. (The reducer is a plain function, so this is easy and needs no browser.)
-  - [ ] Optional: a small Socket.IO handshake test (start the server, connect a client, assert it connects). Only if it stays simple; otherwise note it as manual-verified.
+- [x] Task 6: Tests — AI-written
+  - [x] Server `GET /api/health` returns 200 with `{ status: 'ok' }` — `packages/server/src/app.test.ts` (supertest against the exported `app`, no real port). Required the `app.ts` / `server.ts` split (app exported separately from the listen + Socket.IO) so the route is testable.
+  - [x] Server CORS lock (AC4): a second test asserts `Access-Control-Allow-Origin` is the client dev origin (`http://localhost:5173`), not `*`.
+  - [x] Client reducer unit test — `packages/client/src/state/reducer.test.ts`: `connecting` start, `connected`/`disconnected` transitions, and no-mutation.
+  - [~] Socket.IO handshake test: **manual-verified, intentionally not automated** (the option in the spec said "only if it stays simple"). The live handshake was confirmed by eye (`connecting` → `connected` on the page; server logs `client connected`). An automated version would need `server.ts` refactored to export a start/stop hook so a test can listen on an ephemeral port — out of proportion for 2.1's smoke loop. Revisit when the socket carries real game events (2.2+), where an integration test earns its keep.
 - [ ] Task 7: Prove the loop (AC: all)
-  - [ ] `npm run dev` starts both apps with one command; opening the client shows `connecting` then `connected`; stopping the server shows `disconnected`.
-  - [ ] `npm run typecheck` — strict-clean across all packages (the new `noUnusedLocals` / `noUnusedParameters` / `allowUnreachableCode` flags now apply here too).
-  - [ ] `npm test` — new tests green alongside the engine's 109.
-  - [ ] `npm run format` (and `lint`, if you wire one).
+  - [x] `npm run dev` starts both apps with one command; the client shows `connecting` → `connected`; stopping the server shows `disconnected`. (Manual smoke — verified.)
+  - [x] `npm run typecheck` — strict-clean across all four (root + engine + server + client). Required adding a `typecheck` script to the client (`tsc -b`, because its tsconfig is references-only) and to the server (`tsc --noEmit`).
+  - [x] `npm test` — green: engine 109 + client 4 + server 2 = 115. (Server needed its own `vitest.config.ts` so `vitest run` inside the package doesn't pick up the root `projects` config.)
+  - [ ] `npm run format` — run before commit.
   - [ ] Commit on `story/2.1`, push, open PR, run code-review per process.
 
 ## Dev Notes
@@ -146,9 +147,32 @@ N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement;
 ### Debug Log References
 
 ### Completion Notes List
-1b - Using `concurrently` to run both apps with clear labels
-1c - Using fixed dev ports and locking CORS to the client origin
-1d - Using React built-ins reducer with context for connection status
-1e - Using built-in Socket.IO lifecycle events only (no custom game events yet)
+
+Decisions:
+- 1a — Server runs via `tsx` in dev (loads engine TypeScript source); no engine `dist` build needed for 2.1. Deferred to a production consumer.
+- 1b — `concurrently` runs both apps from one root `npm run dev` with labels.
+- 1c — Fixed dev ports (client 5173, server 3000); CORS locked to `http://localhost:5173` on both Express and Socket.IO; never `*`.
+- 1d — React built-ins reducer (`useReducer`) holds the connection status. Context deferred until a child component needs the state (2.3+); 2.1 reads it in `App` directly.
+- 1e — Only the built-in Socket.IO `connect`/`disconnect` lifecycle; the typed event protocol is story 2.2.
+
+Setup notes / gotchas resolved during the build (for future infra stories):
+- Node version: the repo requires Node ≥24 (`engines`); a Node-20 shell broke `create-vite`'s install. Added `.nvmrc` (`24`) so `nvm use` auto-selects it.
+- All three packages are scoped `@card-clash/*` (client was renamed from `client`). Use the scoped name in `-w` flags.
+- The root `npm run dev` (concurrently) script belongs in the **root** `package.json`. Putting it in a workspace makes that workspace's `dev` call itself → infinite recursion.
+- `server.ts` was split into `app.ts` (exports the Express `app`) + `server.ts` (http.Server + Socket.IO + listen) so the health route is testable with supertest.
+- Per-package `vitest run` needs a **local** `vitest.config.ts`; otherwise it picks up the root `projects: ['packages/*']` config and fails ("No projects were found"). Added one to the server. (The client already had `vite.config.ts`.)
+- Client `typecheck` is `tsc -b` (its `tsconfig.json` is references-only, so plain `tsc --noEmit` checks nothing). Server `typecheck` is `tsc --noEmit`. All packages now have a `typecheck` script — `--if-present` on the root typecheck can now be dropped if desired (was an Epic 1 deferred item).
+- Engine `tsconfig.json` had a stray `include` of `../server/server.ts` (accidental); reverted to `["src"]` to keep the engine free of server references.
+
+Tests: 115 total green (engine 109, client 4 reducer, server 2 health+CORS). Socket handshake is manual-verified (see Task 6).
 
 ### File List
+
+New:
+- `packages/client/` — Vite react-ts scaffold (trimmed to a placeholder); `src/socket.ts` (socket.io-client), `src/state/reducer.ts` (+ `reducer.test.ts`), `App.tsx` wiring; added `typecheck` + `test` scripts.
+- `packages/server/` — hand-built: `src/app.ts` (Express app + CORS + `/api/health`), `src/server.ts` (http.Server + Socket.IO + listen), `src/app.test.ts`, `package.json`, `tsconfig.json`, `vitest.config.ts`.
+- `.nvmrc` (`24`).
+
+Changed:
+- Root `package.json` — added the `dev` (concurrently) script + `concurrently` devDependency; `package-lock.json`.
+- `packages/engine/tsconfig.json` — reverted the stray `include`.
