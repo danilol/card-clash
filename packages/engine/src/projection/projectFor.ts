@@ -6,8 +6,8 @@ export function projectFor(state: MatchState, viewerId: PlayerId): PlayerView {
   }
 
   const opponentId: PlayerId = state.players.find((p) => p !== viewerId)!;
-  const yourStack: Card[] = [...state.playerStacks[viewerId]];
-  const opponentStack: Card[] = [...state.playerStacks[opponentId]];
+  const yourStack = state.playerStacks[viewerId];
+  const opponentStack = state.playerStacks[opponentId];
 
   return {
     you: viewerId,

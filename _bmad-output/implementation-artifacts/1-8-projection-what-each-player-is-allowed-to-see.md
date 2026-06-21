@@ -1,6 +1,6 @@
 # Story 1.8: Projection — what each player is allowed to see
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -127,3 +127,21 @@ Agreed with suggestions from 1a-1e
 - `packages/engine/src/index.ts` (export `PlayerView` type + `projectFor` value)
 - `packages/engine/src/projection/projectFor.ts` (the projection — allow-list, NFR2 door)
 - `packages/engine/src/projection/projectFor.test.ts` (projection test suite)
+
+## Review Findings
+
+_Code review 2026-06-21 (3 parallel layers). **No spec violations** — AC1–4 all satisfied, the allow-list is honored (explicit fields, no `...state` spread), `superTrumpCardId` never enters the view, and the code matches recorded decisions 1a–1e. 109 tests green, typecheck clean. No decision-needed; no real High/Critical._
+
+### Patches (optional, Low)
+
+- [ ] [Review][Patch][Low] Redundant array copies in `projectFor.ts` — `const opponentStack = [...state.playerStacks[opponentId]]` is built only to read `.length` (use `state.playerStacks[opponentId].length` directly); `yourStack` is copied but only its `[0]` and `.length` are used. Harmless, but allocates two throwaway arrays per call. Trim if you like. *(implementation — your call)*
+
+### Deferred (to 2.x — boundary validation)
+
+- [x] [Review][Defer] `state.players.find((p) => p !== viewerId)!` assumes exactly two distinct players. The unknown-viewer guard covers the realistic bad input, but a 1-player / duplicate-id / 3+-player state would crash on `[...undefined]` or silently drop a third player. Same standing "engine trusts a well-formed 2-player state" position; payload-shape validation lands at the 2.x zod boundary.
+
+### Dismissed (by-design / spec-compliant)
+
+- **Reference sharing of `yourTopCard` / `lastRound` / `result` (Blind + Edge, Medium)** — these fields share object references with `state` (the `Card` objects come from the deck). This is the engine-wide convention: immutability is enforced by the deep-`readonly` *types*, not by runtime cloning/freezing (`applyCommand` shares `players`/`statDefinitions`/`Card` objects the same way — accepted since the 1.4 review). It leaks no extra **data** (the shared objects are exactly the allow-listed fields), and the view is JSON-serialized at the wire boundary (2.x), which snapshots it. A caller that casts away `readonly` and mutates is violating the type contract, same as anywhere in the engine.
+- **`lastRound` exposes both players' played cards (Edge, Medium)** — spec-blessed: FR12 reveals played cards face-up to both players, and a played Super Trump is public by FR19. Not a leak. (Minor forward-looking note: the NFR2 serialization test uses `lastRound: null`, so a non-null `lastRound` isn't serialized-and-checked — fine today since `RoundOutcome` holds only public data; revisit only if `RoundOutcome` ever widens.)
+- **Empty-stack / duplicate-id marker** — `superTrumpCardId === yourStack[0]?.id` is `false` for an empty stack (string never equals `undefined`); a duplicate-id deck would mis-mark, but deck-id uniqueness is an upstream invariant, not this function's concern.
