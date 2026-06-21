@@ -1,6 +1,6 @@
 # Story 1.7: Match end — every way a game can finish
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -132,3 +132,28 @@ N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement;
 1e - FR25b pot-to-winner on end; both-empty fallback now lands here as normal allCards conquest
 
 ### File List
+
+- `packages/engine/src/types.ts` (`EndReason`, `MatchResult`, `result` field, `MATCH_OVER` code)
+- `packages/engine/src/index.ts` (export `EndReason`, `MatchResult`)
+- `packages/engine/src/match/setup.ts` (init `result: null`)
+- `packages/engine/src/match/applyCommand.ts` (MATCH_OVER guard, conquest + round-cap detection)
+- `packages/engine/src/match/applyCommand.test.ts` (match-end suite + seeded random-play property test)
+
+## Review Findings
+
+_Code review 2026-06-21 (3 parallel layers). **AC1–5 all satisfied**, code matches recorded decisions 1a–1e, no throw on any legal play path, purity preserved. 99 tests green, typecheck clean. No decision-needed; no real High/Critical findings._
+
+### Patches
+
+- [x] [Review][Patch][Low] No dedicated test for the FR23 tie-elimination → ended path (conquest tests reached 0 via a decided round) — **RESOLVED:** added a test where a tie empties the chooser and the opponent collects all, asserting `result = { winner, reason: 'allCards' }`.
+- [x] [Review][Patch][Low] Document the "pot is empty whenever `result` is set" invariant — **RESOLVED:** comment added above the end-detection block in `applyCommand.ts`.
+
+### Deferred (engine trusts a well-formed 2-player state)
+
+- [x] [Review][Defer] `find()!` (opponent lookup) and `shift()!` (top card) still assume exactly 2 non-empty players. The `MATCH_OVER` guard now closes the *realistic* case (every in-play 0-card state has `result` set, so it's rejected before any `shift`). The only way to reach an unguarded `shift()!` is a malformed input state (`createMatch` with <2 players, or a hand-built empty-stack-with-null-result) — out of scope; payload-shape validation lands at the 2.x zod boundary. (Standing item since 1.4; now mostly closed.)
+
+### Dismissed (false positive / proven safe)
+
+- **"False conquest on a draw" (Blind Hunter, Critical) — FALSE POSITIVE.** It assumed a tie that empties a stack leaves cards stranded in the pot. Verified against the code: a tie with an empty stack routes to the sweep branch (`applyCommand.ts:74/82`) — all cards go to the other player and `pot = []`; the pot-grow branch only runs when both stacks still hold cards. Conquest then correctly awards to the collector. Edge Hunter + Auditor independently confirmed.
+- **Non-termination on perpetual ties** — cannot happen: each tie moves both top cards to the pot (stacks shrink by 2), so a tie chain depletes a stack within ≤16 ties → conquest; decided rounds increment toward the 100-round cap. Every path terminates (the 25-seed random-play test confirms empirically).
+- **`throw`s in `conquestResultWinner` / `roundCapResultWinner`** — unreachable (each is called only after its `…Happened` predicate is true); architecture permits throws for programmer error. Compliant.

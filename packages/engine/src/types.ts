@@ -73,4 +73,3 @@ export type MatchResult = {
 };
 
 export type EndReason = 'allCards' | 'roundCap';
-

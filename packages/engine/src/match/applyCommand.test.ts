@@ -634,10 +634,7 @@ describe('applyCommand — Super Trump round still obeys the 1.4 contract', () =
 });
 
 function allCardIds(state: MatchState): string[] {
-  return [
-    ...state.players.flatMap((p) => state.playerStacks[p]),
-    ...state.pot,
-  ]
+  return [...state.players.flatMap((p) => state.playerStacks[p]), ...state.pot]
     .map((c) => c.id)
     .sort();
 }
@@ -677,6 +674,23 @@ describe('applyCommand — conquest ends the match (FR24, AC 1)', () => {
     expect(result.state.result).toEqual({ winner: BOB, reason: 'allCards' });
     expect(result.state.playerStacks[BOB]).toHaveLength(32);
     expect(result.state.playerStacks[ALICE]).toHaveLength(0);
+  });
+
+  it('a 1.6 tie-elimination is now recognised as an allCards match end', () => {
+    // LAW vs KID tie on bounty; the chooser plays their last card, so the
+    // opponent collects everything (1.6 FR23) — and 1.7 marks it ended.
+    const state = makeState({
+      chooserStack: [LAW],
+      opponentStack: [KID, NAMI],
+    });
+    const result = applyCommand(state, selectStat(ALICE, 'bounty'));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.result).toEqual({ winner: BOB, reason: 'allCards' });
+    expect(result.state.playerStacks[ALICE]).toHaveLength(0);
+    expect(result.state.playerStacks[BOB]).toEqual([NAMI, LAW, KID]);
+    expect(result.state.pot).toEqual([]);
   });
 });
 
@@ -753,7 +767,8 @@ describe('applyCommand — full match plays to a clean finish (FR25b)', () => {
       while (state.result === null && command < MAX) {
         // Conservation must hold before AND after every command.
         expect(allCardIds(state)).toEqual(DECK_IDS);
-        const stat = state.statDefinitions[command % state.statDefinitions.length].key;
+        const stat =
+          state.statDefinitions[command % state.statDefinitions.length].key;
         const res = applyCommand(state, selectStat(state.chooser, stat));
         expect(res.ok).toBe(true);
         if (!res.ok) return;

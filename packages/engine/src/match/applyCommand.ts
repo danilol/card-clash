@@ -111,17 +111,34 @@ export function applyCommand(
     roundsPlayedCounter++;
   }
 
-   if (conquestResultHappened(chooserStack, opponentStack)) {
+  // Invariant: the pot is always empty here when a result is set. Conquest is
+  // only reached after a decided round or a tie-elimination (both empty the
+  // pot), and the round cap only fires on a decided round (roundsPlayed counts
+  // decided rounds only). So no explicit pot sweep is needed at match end — if
+  // that ever changes (e.g. ties incrementing roundsPlayed), revisit this.
+  if (conquestResultHappened(chooserStack, opponentStack)) {
     matchResult = {
-      winner: conquestResultWinner(chooserStack, chooserId, opponentStack, opponentId),
+      winner: conquestResultWinner(
+        chooserStack,
+        chooserId,
+        opponentStack,
+        opponentId,
+      ),
       reason: 'allCards',
     };
-   } else if (roundCapResultHappened(roundsPlayedCounter, chooserStack, opponentStack)) {
+  } else if (
+    roundCapResultHappened(roundsPlayedCounter, chooserStack, opponentStack)
+  ) {
     matchResult = {
-      winner: roundCapResultWinner(chooserStack, chooserId, opponentStack, opponentId),
+      winner: roundCapResultWinner(
+        chooserStack,
+        chooserId,
+        opponentStack,
+        opponentId,
+      ),
       reason: 'roundCap',
     };
-   }
+  }
 
   const newPlayerStacks: Record<PlayerId, readonly Card[]> = {
     [chooserId]: chooserStack,
@@ -152,16 +169,23 @@ function addCardsToWinnerStack(
   winnerStack.push(...pot, chooserCard, opponentCard);
 }
 
-function conquestResultHappened(chooserStack: Card[], opponentStack: Card[]) : boolean {
-  if ((playerHasEmptyStack(chooserStack))||
-      (playerHasEmptyStack(opponentStack))) {
+function conquestResultHappened(
+  chooserStack: Card[],
+  opponentStack: Card[],
+): boolean {
+  if (playerHasEmptyStack(chooserStack) || playerHasEmptyStack(opponentStack)) {
     return true;
   }
 
   return false;
 }
 
-function conquestResultWinner(chooserStack: Card[], chooserId: PlayerId, opponentStack: Card[], opponentId: PlayerId) : PlayerId {
+function conquestResultWinner(
+  chooserStack: Card[],
+  chooserId: PlayerId,
+  opponentStack: Card[],
+  opponentId: PlayerId,
+): PlayerId {
   if (playerHasEmptyStack(chooserStack)) {
     return opponentId;
   }
@@ -177,12 +201,20 @@ function playerHasEmptyStack(stack: Card[]): boolean {
   return stack.length === 0;
 }
 
-function roundCapResultHappened(roundsPlayed: number, chooserStack: Card[], opponentStack: Card[]): boolean {
+function roundCapResultHappened(
+  roundsPlayed: number,
+  chooserStack: Card[],
+  opponentStack: Card[],
+): boolean {
   return roundsPlayed >= 100 && chooserStack.length !== opponentStack.length;
 }
 
-function roundCapResultWinner(chooserStack: Card[], chooserId: PlayerId, opponentStack: Card[], opponentId: PlayerId) : PlayerId {
-
+function roundCapResultWinner(
+  chooserStack: Card[],
+  chooserId: PlayerId,
+  opponentStack: Card[],
+  opponentId: PlayerId,
+): PlayerId {
   if (chooserStack.length > opponentStack.length) {
     return chooserId;
   }
@@ -193,6 +225,3 @@ function roundCapResultWinner(chooserStack: Card[], chooserId: PlayerId, opponen
 
   throw new Error('Round cap result happened but no winner found');
 }
-
-
-
