@@ -73,3 +73,15 @@ export type MatchResult = {
 };
 
 export type EndReason = 'allCards' | 'roundCap';
+
+export type PlayerView = {
+  readonly you: PlayerId;
+  readonly yourTopCard: Card | null;
+  readonly yourStackCount: number;
+  readonly opponentStackCount: number;
+  readonly potCount: number;
+  readonly chooser: PlayerId;
+  readonly yourTopCardIsSuperTrump: boolean;
+  readonly lastRound: RoundOutcome | null;
+  readonly result: MatchResult | null;
+};
