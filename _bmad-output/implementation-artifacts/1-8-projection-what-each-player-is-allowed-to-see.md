@@ -1,6 +1,6 @@
 # Story 1.8: Projection — what each player is allowed to see
 
-Status: in-progress
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a tutorial-sized step guide + review contract, NOT a spec for a code-generating
@@ -134,7 +134,7 @@ _Code review 2026-06-21 (3 parallel layers). **No spec violations** — AC1–4 
 
 ### Patches (optional, Low)
 
-- [ ] [Review][Patch][Low] Redundant array copies in `projectFor.ts` — `const opponentStack = [...state.playerStacks[opponentId]]` is built only to read `.length` (use `state.playerStacks[opponentId].length` directly); `yourStack` is copied but only its `[0]` and `.length` are used. Harmless, but allocates two throwaway arrays per call. Trim if you like. *(implementation — your call)*
+- [x] [Review][Patch][Low] Redundant array copies in `projectFor.ts` — **RESOLVED:** now reads `state.playerStacks[...]` directly (no throwaway copies). Trivial follow-up: the `Card` import is now unused and can be dropped from line 1.
 
 ### Deferred (to 2.x — boundary validation)
 
