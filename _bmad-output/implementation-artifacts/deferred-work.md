@@ -22,3 +22,9 @@
 
 - Tie resolution `throw`s a hard `Error` in `applyCommand` (intentional placeholder per Task 4). Reachable in normal play: `onePieceDeck` has many duplicate stat values (bounty 0 ×3, bounty 3,000,000,000 ×4, plus repeated haki/loyalty/devilFruitMastery values), so a full seeded match will hit a tie before story 1.6 implements tie→pot mechanics. Resolve in 1.6.
 - No guards around empty/degenerate state in `applyCommand`: `shift()!` on an empty stack and `find()!` for the opponent both rely on the 2-player, non-empty invariant. A player reaching 0 cards (then acting again) would crash, and there is no end-of-match signal. Spec defers match-end / elimination to story 1.7.
+
+## Deferred from: code review of 1-6-ties-and-the-grand-line-pot (2026-06-21)
+
+- Both-empty tie (each player plays their last card into the same tie): `applyCommand` resolves it as opponent-takes-all because the `chooserStack.length === 0` branch is checked before `opponentStack.length === 0`. Safe (no crash, multiset conserved) but arbitrary — the proper draw / sudden-death rule (FR25) lands in 1.7. (Accepted per story 1.6 decision 1e.)
+- Reinforces the 1.4-review defer: FR23 elimination now *legitimately* produces a 0-card player, so the unguarded `shift()!` is reachable if `applyCommand` is called again on a finished state. 1.7's `ended`/`endReason` guard (FR24) must block acting on a finished match.
+- `lastRound.winner === null` cannot distinguish a pushed tie from an FR23 elimination; 1.7 end-detection should read stack sizes, not `lastRound.winner`.
