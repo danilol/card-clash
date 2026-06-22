@@ -1,6 +1,6 @@
 # Story 2.1: Client and server come alive with a working dev loop
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & architecture handoff): Danilo hand-writes ALL code.
      This story is a step-by-step guide + review contract, NOT a spec for a code-generating agent.
@@ -174,5 +174,51 @@ New:
 - `.nvmrc` (`24`).
 
 Changed:
-- Root `package.json` — added the `dev` (concurrently) script + `concurrently` devDependency; `package-lock.json`.
+- Root `package.json` — added the `dev` (concurrently) script + `concurrently` devDependency; dropped `--if-present` from typecheck (all packages now have a `typecheck` script); `package-lock.json`.
 - `packages/engine/tsconfig.json` — reverted the stray `include`.
+
+## Review Findings
+
+_Code review 2026-06-21 (3 parallel layers). **All four ACs and every constraint pass; code matches all five recorded decisions** (verified by the Acceptance Auditor). One shared `http.Server`, CORS locked (not `*`, tested), React built-ins only, engine stays clean, `tsx` dev. typecheck clean across all 4 (with `--if-present` safely dropped), 115 tests green. No decision-needed; findings are quality/robustness only._
+
+### Patches — recommended
+
+- [ ] [Review][Patch][Med] **`connect_error` is not handled → the page sits on "connecting" forever when the socket can't connect.** `socket.io-client` fires `connect_error` (not `disconnect`) on a failed connect — server down, wrong port, or CORS mismatch. `App.tsx` listens only to `connect`/`disconnect`, so a failed connection looks identical to "still trying" (this is exactly the confusing state hit during the CORS bug earlier). Fix: add a `socket.on('connect_error', …)` listener that dispatches `{ type: 'disconnected' }` (maps cleanly to the existing enum), and remove it in cleanup.
+- [ ] [Review][Patch][Med] **Vite can silently move off port 5173 → CORS breaks → stuck on "connecting".** If 5173 is taken, Vite auto-bumps to 5174+, but the server's CORS allows only `http://localhost:5173`, so the handshake is rejected with no UI signal. Fix: pin Vite in `vite.config.ts` with `server: { port: 5173, strictPort: true }` so it fails loudly instead of silently mismatching.
+- [ ] [Review][Patch][Low] **`npm run dev` is not documented (Task 4 required it).** Add it to the README "Commands" section, and refresh the stale rows that still mark `packages/server` / `packages/client` as "(planned, Epic 2)".
+
+### Patches — optional (your call)
+
+- [ ] [Review][Patch][Low] `CLIENT_ORIGIN` (and the ports) are hardcoded in three files (`app.ts`, `server.ts`, client `socket.ts`). Decision 1c said "a shared constant or an env var with a documented default." Extract to one shared constant (or a `.env.example`) to remove the drift risk.
+- [ ] [Review][Patch][Low] Server has no `httpServer.on('error', …)` handler — `EADDRINUSE` (stale process on :3000) crashes with a raw stack. A small friendly message helps the dev loop.
+- [ ] [Review][Patch][Low] Reducer has no `default` branch. Safe today (closed `Action` union), but if a future action type is dispatched before its `case` is added, `reducer` returns `undefined` and `state.status` throws. A `default: return state` guard is cheap insurance — relevant if you add a `connecting`/error action later.
+
+### Deferred
+
+- [x] [Review][Defer] After the first connect, a reconnect never shows "connecting" again (it jumps disconnected → connected). The three states are all reachable on first load; richer reconnect/reconnecting states are polish for when the socket carries real game events (2.2+).
+
+### Dismissed
+
+- Dropping `--if-present` on typecheck — **verified safe** (all 3 packages have a `typecheck` script; root typecheck exits 0). This is the intended close of an Epic 1 deferred item, not a risk.
+- Cleanup removes listeners but doesn't `disconnect()` the module-singleton socket — by design (one shared socket for the app's life); no leak for a single-page client.
+- Reducer non-exhaustive switch — fine: `Action` is a closed union, so TS guarantees all cases return.
+
+### Review Findings — follow-up 2026-06-22
+
+_Follow-up review of commit `74b1348` "Patching small fixes" (3 parallel layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor). This commit applies the three **recommended** patches from the 2026-06-21 review. **Acceptance Auditor: all three patches applied correctly and completely, no regressions.** `connect_error` → `disconnected` (added + removed in cleanup, same fn ref, reuses the existing enum); Vite pinned `port: 5173, strictPort: true` (matches the locked CORS origin); `npm run dev` documented in the README. typecheck clean (4 workspaces), 115 tests green, eslint clean._
+
+#### Patch — recommended
+
+- [x] [Review][Patch][Low] **(Applied 2026-06-22)** **`strictPort` now hard-fails Vite on a port clash, but the root `dev` script has no `--kill-others-on-fail` → the server is left orphaned.** Before this commit Vite would bump to 5174 and keep running (silent CORS break); now it exits non-zero on a 5173 clash (the intended loud fail). But root `package.json:10` runs `concurrently` without `--kill-others-on-fail`, so when Vite dies the server process keeps running — a half-up dev loop with no clear signal. Fix: add `--kill-others-on-fail` to the root `dev` script so both processes stop together. [`package.json:10`]
+
+#### Deferred
+
+- [x] [Review][Defer] Reconnect / initial-failure UX is coarse: `connect_error` fires on every reconnect attempt and pins the UI to `disconnected`, and a first-ever connect failure (server never reached) shows `disconnected` rather than a distinct "cannot reach server" state. By design for 2.1 — AC3 scopes the enum to exactly `connecting | connected | disconnected`, and mapping `connect_error` → `disconnected` is the chosen behavior. Extends the existing reconnect-state defer; richer states are 2.2+ polish. [`App.tsx:15-17`, `reducer.ts:6`]
+
+#### Dismissed (5)
+
+- **`npm run dev` script missing** (Blind, unverifiable from diff-only) — **verified present**: root `package.json:10` has the `concurrently` script.
+- **`useEffect([])` binds stale `socket`/`dispatch`** (Blind) — false positive: `socket` is a module-level singleton (`socket.ts`), `dispatch` is `useReducer`'s stable reference; both safe across renders.
+- **`disconnected` may clear state on a recoverable connect error** (Blind) — no: the reducer is a pure status enum with no side effects and is idempotent under repeated `connect_error`.
+- **`strictPort` hard-fail on a busy port** (Blind, Med) — by design: failing loudly is exactly the point of this patch (the alternative is a silent CORS mismatch). The only real follow-on is the orphaned-sibling patch above.
+- **Pinned 5173 may desync from server CORS** (Blind) — inverted: pinning to 5173 is what *prevents* desync; 5173 is the locked CORS origin.

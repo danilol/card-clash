@@ -12,14 +12,19 @@ function App() {
     function onDisconnect() {
       dispatch({ type: 'disconnected' });
     }
+    function onConnectError() {
+      dispatch({ type: 'disconnected' });
+    }
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     if (socket.connected) dispatch({ type: 'connected' });
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
     };
   }, []);
 
