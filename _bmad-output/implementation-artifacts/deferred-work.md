@@ -28,3 +28,7 @@
 - Both-empty tie (each player plays their last card into the same tie): `applyCommand` resolves it as opponent-takes-all because the `chooserStack.length === 0` branch is checked before `opponentStack.length === 0`. Safe (no crash, multiset conserved) but arbitrary — the proper draw / sudden-death rule (FR25) lands in 1.7. (Accepted per story 1.6 decision 1e.)
 - Reinforces the 1.4-review defer: FR23 elimination now *legitimately* produces a 0-card player, so the unguarded `shift()!` is reachable if `applyCommand` is called again on a finished state. 1.7's `ended`/`endReason` guard (FR24) must block acting on a finished match.
 - `lastRound.winner === null` cannot distinguish a pushed tie from an FR23 elimination; 1.7 end-detection should read stack sizes, not `lastRound.winner`.
+
+## Deferred from: code review of 2-1-client-and-server-come-alive-with-a-working-dev-loop (2026-06-22)
+
+- Reconnect / initial-failure UX is coarse: `connect_error` fires on every reconnect attempt and pins the UI to `disconnected`; a first-ever connect failure (server never reached) also shows `disconnected` with no distinct "cannot reach server" state. By design for 2.1 (AC3 scopes the enum to `connecting | connected | disconnected`; `connect_error` → `disconnected` is the chosen mapping). Extends the existing reconnect-state defer — richer reconnecting/error states are 2.2+ polish when the socket carries real game events.

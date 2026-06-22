@@ -21,6 +21,7 @@ Requires **Node ≥24** — enforced at install time via `.npmrc` (`engine-stric
 
 ```bash
 npm install        # bootstrap all workspaces (fails on Node <24 by design)
+npm run dev        # start both client and server concurrently
 npm test           # vitest run across all projects
 npm run typecheck  # root tsc (vitest.config.ts), then per-workspace tsc --noEmit
 ```

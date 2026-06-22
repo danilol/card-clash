@@ -7,12 +7,14 @@
     "node": ">=24"
   },
   "scripts": {
+    "dev": "concurrently --kill-others-on-fail -n server,client -c blue,green \"npm run dev -w @card-clash/server\" \"npm run dev -w @card-clash/client\"",
     "test": "vitest run",
     "test:engine": "vitest run --project @card-clash/engine",
-    "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspaces",
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "prettier": "^3.8.4",
     "typescript": "^6.0.0",
     "vitest": "^4.0.0"
