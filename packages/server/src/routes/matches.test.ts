@@ -23,9 +23,13 @@ describe('POST /api/matches', () => {
     expect(a.body.matchId).not.toBe(b.body.matchId);
   });
 
-  it('rejects a missing nickname with 400', async () => {
+  it('rejects a missing nickname with 400 and the shared error shape', async () => {
     const res = await request(app).post('/api/matches').send({});
     expect(res.status).toBe(400);
+    expect(res.body.error).toEqual({
+      code: 'INVALID_BODY',
+      message: expect.any(String),
+    });
   });
 
   it('rejects an empty nickname with 400', async () => {

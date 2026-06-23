@@ -11,7 +11,6 @@ type State = { status: Status; screen: Screen; match: Match };
 export type Action =
   | { type: 'connected' }
   | { type: 'disconnected' }
-  | { type: 'match/created' }
   | {
       type: 'match/joined';
       matchId: string;
@@ -32,13 +31,6 @@ export function reducer(state: State, action: Action): State {
       return { ...state, status: 'connected' };
     case 'disconnected':
       return { ...state, status: 'disconnected' };
-    case 'match/created':
-      return {
-        ...state,
-        status: 'connected',
-        screen: 'home',
-        match: state.match,
-      };
     case 'match/joined':
       return {
         ...state,

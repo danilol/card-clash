@@ -16,7 +16,7 @@ export type EntryStatus = 'waiting' | 'playing' | 'ended';
 
 const matches = new Map<string, MatchEntry>();
 
-export function createMatch(): MatchEntry {
+export function createMatchEntry(): MatchEntry {
   const matchId = crypto.randomUUID();
   const entry: MatchEntry = {
     matchId,

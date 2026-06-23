@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AckPayload, MatchJoinCommand } from '@card-clash/engine';
+import type { AckPayload } from '@card-clash/engine';
 import { socket } from '../socket';
 import type { Dispatch } from 'react';
 import type { Action } from '../state/reducer';
@@ -33,26 +33,31 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
 
       if (!httpResponse.ok) {
         const errorData = await httpResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create match!');
+        throw new Error(errorData.error?.message || 'Failed to create match!');
       }
 
-      const data: MatchJoinCommand = await httpResponse.json();
-      const link = `${window.location.origin}/?match=${data.matchId}`;
-      setMatchLink(link);
+      const data: { matchId: string } = await httpResponse.json();
 
-      const ack = await new Promise<AckPayload>((resolve) => {
-        socket.emit(
-          'match:join',
-          { matchId: data.matchId, nickname },
-          (res: AckPayload) => {
-            resolve(res);
-          },
-        );
+      const ack = await new Promise<AckPayload>((resolve, reject) => {
+        socket
+          .timeout(5000)
+          .emit(
+            'match:join',
+            { matchId: data.matchId, nickname },
+            (err, res: AckPayload) => {
+              if (err)
+                reject(new Error('Server did not respond — please try again.'));
+              else resolve(res);
+            },
+          );
       });
 
       if (ack.ok === false) {
         throw new Error(ack.error.message);
       }
+
+      const link = `${window.location.origin}/?match=${data.matchId}`;
+      setMatchLink(link);
 
       dispatch({
         type: 'match/joined',
@@ -61,8 +66,6 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
         playerId: ack.playerId,
         token: ack.token,
       });
-
-      console.log('Match joined with response: ', ack);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {

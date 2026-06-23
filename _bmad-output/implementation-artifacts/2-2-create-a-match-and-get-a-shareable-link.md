@@ -1,6 +1,6 @@
 # Story 2.2: Create a match and get a shareable link
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Process note (binding, per PRD addendum & D18): Danilo hand-writes ALL code.
      This story is a step-by-step guide + review contract, NOT a spec for a code-generating agent.
@@ -220,3 +220,36 @@ Changed:
 - `packages/client/src/state/reducer.ts` — add `screen` + `match` to state and the `match/created` / `match/joined` actions; `connected`/`disconnected` now only change `status`.
 - `packages/client/src/state/reducer.test.ts` — rewritten for the new state shape + `match/joined`.
 - `packages/client/src/App.tsx` — switch on `state.screen` (home → `HomeScreen`, waiting → waiting view); pass `dispatch` to `HomeScreen`.
+
+## Review Findings
+
+_Code review 2026-06-23 (3 parallel layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor) on branch `story/2.2` vs `main`. **AC2 (typed protocol → wrong payload is a compile error) and AC3 (creator joins, gets a per-player token, UI waiting) fully pass.** AC1 works end to end but the REST 400 does not use the shared error shape — the one binding violation. typecheck clean (incl. the `events.test-d.ts` compile-safety proof); 128 tests green. Engine purity, client `import type`-only, REST/socket split, one http.Server, and playerId≠token are all honored._
+
+### Patches — recommended
+
+- [x] [Review][Patch][Med] **(Fixed 2026-06-23)** **REST 400 doesn't use the shared error shape — and leaks the raw ZodError.** Architecture mandates `{ error: { code, message } }` with a stable code, shared by REST and socket. `routes/matches.ts` returns `{ error: 'Invalid nickname', details: parsedName.error }` — a bare string + the full zod error object. The socket ack gets it right (`{ ok:false, error:{ code:'INVALID_BODY', message } }`), so the two paths are inconsistent. Fix: return `400 { error: { code: 'INVALID_BODY', message: '…' } }`, drop `details`, and update the client read in `HomeScreen.tsx` from `errorData.error` to `errorData.error?.message` (today it only "works" because both sides use a bare string — two bugs cancelling). [`packages/server/src/routes/matches.ts`, `packages/client/src/components/HomeScreen.tsx`] — I'll add the body-shape assertion to `matches.test.ts` once the shape is fixed.
+- [x] [Review][Patch][Med] **(Fixed 2026-06-23)** **`match:join` ack has no timeout → the UI can hang on "Creating…" forever.** In `HomeScreen.tsx` the ack is wrapped in `new Promise` with no timeout and no reject path. If the POST succeeds but the socket leg fails (server down, socket not yet connected, ack never fires), the `await` never resolves: `isLoading` stays `true` and `finally` never runs. Fix: use `socket.timeout(ms).emit('match:join', …, (err, res) => …)` (or a `setTimeout`-based reject) and surface a timeout error. [`packages/client/src/components/HomeScreen.tsx`]
+
+### Patches — quality (your call)
+
+- [x] [Review][Patch][Low] **(Fixed 2026-06-23)** `matchLink` is shown before the join ack returns — if the join fails, the user sees a link for a match they never joined. Set the link after a successful ack, or clear it on the catch path. [`HomeScreen.tsx`]
+- [ ] [Review][Patch][Low] The `INVALID_BODY` ack message reads "Invalid match ID" even when it's the nickname that's bad. Make the message reflect the actual payload problem. [`sockets/matchHandlers.ts`]
+- [ ] [Review][Patch][Low] The join payload shape is declared twice and can drift: `MatchPayload` (events.ts) vs `MatchJoinCommand` (commands.ts). Consolidate — e.g. `type MatchJoinCommand = z.infer<typeof matchJoinCommandSchema>` and have the event map reference it (architecture: "no inline retyping of payloads"). [`protocol/events.ts`, `protocol/commands.ts`]
+- [ ] [Review][Patch][Low] Client mis-types the POST response as `MatchJoinCommand` (which has a `nickname`); the server returns only `{ matchId }`. Add a `CreateMatchResponse = { matchId: string }` (or inline) type. [`HomeScreen.tsx`]
+- [ ] [Review][Patch][Low] Dead `match/created` action — never dispatched, and its branch wrongly force-sets `status: 'connected'`. Remove it (or wire it intentionally). [`state/reducer.ts`]
+- [ ] [Review][Patch][Low] Leftover `console.log`s: the server logs the join payload (incl. nickname) and the client logs the ack **including the token**. Remove them (or gate behind debug). [`sockets/matchHandlers.ts`, `HomeScreen.tsx`]
+- [ ] [Review][Patch][Low] The store's `createMatch()` will collide conceptually with the engine's `createMatch()` (which deals cards) once 2.3 imports the engine one. Rename the store function (e.g. `createMatchEntry` / `createWaitingMatch`) now, before 2.3 builds on it. [`store/matchStore.ts`]
+
+### Deferred
+
+- [x] [Review][Defer] No player cap / no `status === 'waiting'` guard / duplicate-socket join — a match can accept a 3rd+ player or a repeat join. **Deferred by this story's own scope:** MATCH_FULL and join-to-full are story 2.3. Add the cap + status guard + per-socket dedupe there.
+- [x] [Review][Defer] `matchStore` never evicts entries → unbounded growth (every create, plus abandoned lobbies, lives for the process lifetime). Eviction is architecturally tied to `match:ended` + the FR27 write (story 2.5 / Epic 3); an abandoned-lobby TTL is a later hardening. No match-end lifecycle exists yet to hook.
+- [x] [Review][Defer] The per-player `token` is issued but never verified — nothing consumes it yet. By design: enforcement begins when gameplay events carry the token (2.4+). It's the seam, placed now.
+
+### Dismissed
+
+- `crypto.randomUUID()` used without an explicit import — verified safe: global `crypto` is stable from Node 19+ and the project targets Node 24. (Aside: `package.json` `engines` says `>=24` while the dev machine runs v20 — an env-policy note, not a code issue.)
+- `fetch` success-branch `.json()` not guarded — the outer `try/catch` covers a degenerate non-JSON 2xx; not a real server behavior here.
+- `waiting` screen has no exit yet / `match:state` has no client listener — by design; 2.3 wires `match:state` when the friend joins and cards are dealt.
+- `Server` imported as a value (not `import type`) in `matchHandlers.ts` — cosmetic; used only as a type annotation, server-side, no boundary impact.
+- `catch (err: any)` — minor nit; `unknown` + narrowing is tidier but not required.

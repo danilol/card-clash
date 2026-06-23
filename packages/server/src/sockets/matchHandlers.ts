@@ -18,7 +18,10 @@ export function registerMatchHandlers(
       if (!payloadSchema.success) {
         ack({
           ok: false,
-          error: { code: 'INVALID_BODY', message: 'Invalid match ID' },
+          error: {
+            code: 'INVALID_BODY',
+            message: 'Invalid join payload (matchId and nickname required).',
+          },
         });
         return;
       } else {

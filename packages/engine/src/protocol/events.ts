@@ -1,8 +1,9 @@
 import type { PlayerView } from '../types.js';
+import type { MatchJoinCommand } from './commands.js';
 
 export interface ClientToServerEvents {
   'match:join': (
-    payload: MatchPayload,
+    payload: MatchJoinCommand,
     ack: (response: AckPayload) => void,
   ) => void;
 }
@@ -12,11 +13,6 @@ export interface ServerToClientEvents {
   'match:state': (payload: PlayerView) => void;
   'match:ended': (payload: PlayerView) => void;
 }
-
-export type MatchPayload = {
-  matchId: string;
-  nickname: string;
-};
 
 export type AckPayload =
   | {
