@@ -32,3 +32,9 @@
 ## Deferred from: code review of 2-1-client-and-server-come-alive-with-a-working-dev-loop (2026-06-22)
 
 - Reconnect / initial-failure UX is coarse: `connect_error` fires on every reconnect attempt and pins the UI to `disconnected`; a first-ever connect failure (server never reached) also shows `disconnected` with no distinct "cannot reach server" state. By design for 2.1 (AC3 scopes the enum to `connecting | connected | disconnected`; `connect_error` → `disconnected` is the chosen mapping). Extends the existing reconnect-state defer — richer reconnecting/error states are 2.2+ polish when the socket carries real game events.
+
+## Deferred from: code review of 2-2-create-a-match-and-get-a-shareable-link (2026-06-23)
+
+- Join hardening (story 2.3): `match:join` has no player cap, no `status === 'waiting'` guard, and no per-socket dedupe — a match can accept a 3rd+ player or a repeated join from the same socket. The `MATCH_FULL` / join-to-full path is explicitly 2.3 per the 2.2 scope guard; add the cap + status check + socket dedupe there.
+- `matchStore` eviction (story 2.5 / Epic 3): the in-memory `Map` only grows — every created match (plus abandoned lobbies) lives for the process lifetime. Eviction is tied to `match:ended` + the FR27 write; an abandoned-lobby TTL is a later hardening. No match-end lifecycle exists yet to hook.
+- Token enforcement (story 2.4+): the per-player `token` is issued at join but nothing verifies it yet. By design — enforcement begins when in-match gameplay events carry the token.
