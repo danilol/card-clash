@@ -68,8 +68,8 @@ so that every later story builds on a live loop I can see working.
   - [x] `npm run dev` starts both apps with one command; the client shows `connecting` → `connected`; stopping the server shows `disconnected`. (Manual smoke — verified.)
   - [x] `npm run typecheck` — strict-clean across all four (root + engine + server + client). Required adding a `typecheck` script to the client (`tsc -b`, because its tsconfig is references-only) and to the server (`tsc --noEmit`).
   - [x] `npm test` — green: engine 109 + client 4 + server 2 = 115. (Server needed its own `vitest.config.ts` so `vitest run` inside the package doesn't pick up the root `projects` config.)
-  - [ ] `npm run format` — run before commit.
-  - [ ] Commit on `story/2.1`, push, open PR, run code-review per process.
+  - [x] `npm run format` — run before commit.
+  - [x] Commit on `story/2.1`, push, open PR, run code-review per process. (PR opened, reviewed, merged to `main` 2026-06-22.)
 
 ## Dev Notes
 

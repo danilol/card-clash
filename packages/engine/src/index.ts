@@ -21,3 +21,15 @@ export { onePieceDeck } from './deck/onePieceDeck.js';
 export { createMatch } from './match/setup.js';
 export { applyCommand } from './match/applyCommand.js';
 export { projectFor } from './projection/projectFor.js';
+export type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  AckPayload,
+  ErrorPayload,
+} from './protocol/events.js';
+export {
+  type MatchJoinCommand,
+  matchJoinCommandSchema,
+  nicknameSchema,
+  createMatchSchema,
+} from './protocol/commands.js';

@@ -57,7 +57,7 @@ development_status:
   # Epic 2: Play It — two friends battle over a shared link
   epic-2: in-progress
   2-1-client-and-server-come-alive-with-a-working-dev-loop: done
-  2-2-create-a-match-and-get-a-shareable-link: backlog
+  2-2-create-a-match-and-get-a-shareable-link: ready-for-dev
   2-3-friend-joins-cards-are-dealt-the-table-appears: backlog
   2-4-play-rounds-choose-call-out-reveal-repeat: backlog
   2-5-every-ending-lands-on-a-result-screen-and-a-rematch: backlog
