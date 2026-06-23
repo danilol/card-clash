@@ -1,6 +1,6 @@
 # Story 2.2: Create a match and get a shareable link
 
-Status: in-progress
+Status: done
 
 <!-- Process note (binding, per PRD addendum & D18): Danilo hand-writes ALL code.
      This story is a step-by-step guide + review contract, NOT a spec for a code-generating agent.
@@ -233,12 +233,12 @@ _Code review 2026-06-23 (3 parallel layers: Blind Hunter, Edge Case Hunter, Acce
 ### Patches — quality (your call)
 
 - [x] [Review][Patch][Low] **(Fixed 2026-06-23)** `matchLink` is shown before the join ack returns — if the join fails, the user sees a link for a match they never joined. Set the link after a successful ack, or clear it on the catch path. [`HomeScreen.tsx`]
-- [ ] [Review][Patch][Low] The `INVALID_BODY` ack message reads "Invalid match ID" even when it's the nickname that's bad. Make the message reflect the actual payload problem. [`sockets/matchHandlers.ts`]
-- [ ] [Review][Patch][Low] The join payload shape is declared twice and can drift: `MatchPayload` (events.ts) vs `MatchJoinCommand` (commands.ts). Consolidate — e.g. `type MatchJoinCommand = z.infer<typeof matchJoinCommandSchema>` and have the event map reference it (architecture: "no inline retyping of payloads"). [`protocol/events.ts`, `protocol/commands.ts`]
-- [ ] [Review][Patch][Low] Client mis-types the POST response as `MatchJoinCommand` (which has a `nickname`); the server returns only `{ matchId }`. Add a `CreateMatchResponse = { matchId: string }` (or inline) type. [`HomeScreen.tsx`]
-- [ ] [Review][Patch][Low] Dead `match/created` action — never dispatched, and its branch wrongly force-sets `status: 'connected'`. Remove it (or wire it intentionally). [`state/reducer.ts`]
-- [ ] [Review][Patch][Low] Leftover `console.log`s: the server logs the join payload (incl. nickname) and the client logs the ack **including the token**. Remove them (or gate behind debug). [`sockets/matchHandlers.ts`, `HomeScreen.tsx`]
-- [ ] [Review][Patch][Low] The store's `createMatch()` will collide conceptually with the engine's `createMatch()` (which deals cards) once 2.3 imports the engine one. Rename the store function (e.g. `createMatchEntry` / `createWaitingMatch`) now, before 2.3 builds on it. [`store/matchStore.ts`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-24)** The `INVALID_BODY` ack message reads "Invalid match ID" even when it's the nickname that's bad. Make the message reflect the actual payload problem. [`sockets/matchHandlers.ts`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-24)** The join payload shape is declared twice and can drift: `MatchPayload` (events.ts) vs `MatchJoinCommand` (commands.ts). Consolidate — e.g. `type MatchJoinCommand = z.infer<typeof matchJoinCommandSchema>` and have the event map reference it (architecture: "no inline retyping of payloads"). [`protocol/events.ts`, `protocol/commands.ts`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-24)** Client mis-types the POST response as `MatchJoinCommand` (which has a `nickname`); the server returns only `{ matchId }`. Add a `CreateMatchResponse = { matchId: string }` (or inline) type. [`HomeScreen.tsx`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-24)** Dead `match/created` action — never dispatched, and its branch wrongly force-sets `status: 'connected'`. Remove it (or wire it intentionally). [`state/reducer.ts`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-24)** Leftover `console.log`s: the server logs the join payload (incl. nickname) and the client logs the ack **including the token**. Remove them (or gate behind debug). [`sockets/matchHandlers.ts`, `HomeScreen.tsx`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-24)** The store's `createMatch()` will collide conceptually with the engine's `createMatch()` (which deals cards) once 2.3 imports the engine one. Rename the store function (e.g. `createMatchEntry` / `createWaitingMatch`) now, before 2.3 builds on it. [`store/matchStore.ts`]
 
 ### Deferred
 

@@ -11,8 +11,6 @@ export function registerMatchHandlers(
 ) {
   io.on('connection', (socket) => {
     socket.on('match:join', (payload, ack) => {
-      console.log('match:join', payload);
-
       const payloadSchema = matchJoinCommandSchema.safeParse(payload);
 
       if (!payloadSchema.success) {
