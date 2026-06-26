@@ -49,7 +49,7 @@ function App() {
       return state.view ? <MatchScreen view={state.view} /> : null;
     default:
       return (
-        <div style={{ backgroundColor: 'lightgreen' }}>
+        <div>
           <h1>Card Clash - {state.status}</h1>
         </div>
       );

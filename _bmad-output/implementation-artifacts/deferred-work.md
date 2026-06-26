@@ -43,3 +43,9 @@
 
 - Client DOM test infrastructure (early 2.4): set the client vitest `environment: 'jsdom'` and add a render lib (e.g. @testing-library/react). Unblocks the deferred 2.3 tests — `CardView` render (8 labeled stats + holder-only trump badge) and the join-from-URL initial screen — both manually verified for 2.3. 2.4 adds interactive stat selection, which wants component tests anyway.
 - `MATCH_FULL` (and the status/socket-dedupe) join guards have no automated test — they live inside the socket handler. Extract the guard into a pure `canJoin(entry, socketId)` helper to unit-test, or add a socket round-trip test when socket integration testing is set up. Manually verified for 2.3.
+
+## Deferred from: code review of 2-3 (2026-06-26)
+
+- Disconnect handling (story 2.6 / FR5): no `socket.on('disconnect', …)` removes a lobby player. A player who drops mid-lobby stays in `entry.players`; a later 2nd join still auto-starts and emits `match:state` to the dead socket. Add lobby cleanup + forfeit in 2.6.
+- Joiner can hang on `waiting` if the creator's socket-join silently failed (no client waiting-timeout, no lobby-presence event). Pair with the 2.6 disconnect work — likely a client-side waiting timeout / lobby-status signal.
+- Reconnect identity: the same-socket dedupe in `match:join` keys on `socket.id` (changes on reconnect), so it can't recognize a reconnecting player. Proper identity uses the per-player token seam — part of the deferred reconnect work (post-2.6).

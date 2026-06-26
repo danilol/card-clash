@@ -168,6 +168,20 @@ describe('projectFor — NFR2: forbidden data never reaches the wire (AC 3)', ()
   });
 });
 
+describe('projectFor — stat definitions pass through (FR29 / decision 3g)', () => {
+  it('includes the deck’s stat definitions in the view, identically for both players', () => {
+    const state = makeState({
+      aliceStack: [LUFFY, ZORO],
+      bobStack: [NAMI, USOPP],
+    });
+
+    expect(projectFor(state, ALICE).statDefinitions).toEqual(
+      onePieceDeck.stats,
+    );
+    expect(projectFor(state, BOB).statDefinitions).toEqual(onePieceDeck.stats);
+  });
+});
+
 describe('projectFor — unknown viewer', () => {
   it('throws for a viewer that is not in the match', () => {
     const state = makeState({ aliceStack: [LUFFY], bobStack: [NAMI] });

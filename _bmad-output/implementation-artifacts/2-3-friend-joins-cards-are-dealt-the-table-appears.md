@@ -1,6 +1,6 @@
 # Story 2.3: Friend joins, cards are dealt, the table appears
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & D18): Danilo hand-writes ALL code.
      This story is a step-by-step guide + review contract, NOT a spec for a code-generating agent.
@@ -205,6 +205,34 @@ Tests: 133 total green (was 122). New: client reducer `match/state` + shape upda
 Deferred tests (manual-verified, consistent with the 2.1/2.2 socket-test deferral):
 - `MATCH_FULL` 3rd-joiner rejection — **manually verified** (third tab rejected with "Match is full"). A unit test needs the join-guard extracted from the socket handler or a socket round-trip.
 - `CardView` render (8 labeled stats + trump badge) and join-from-URL initial screen — need a DOM test env (jsdom + render lib), not set up on the client yet. Card rendering manually verified across two tabs. Recommend adding client jsdom/RTL infra as an early 2.4 task.
+
+## Review Findings
+
+_Code review 2026-06-26 (3 parallel layers) on branch `story/2.3` vs `main`. **All 4 ACs pass, all binding architecture rules hold, all decisions 3a–3g honored.** typecheck clean; 133 tests green; NFR2-at-the-wire (AC4) covered by `startViews.test.ts`. The adversarial "High" findings resolved to: a **false-positive race** (the `match:join` handler is synchronous — no `await` between the `≥2` guard, `addPlayer`, and the `===2` start — so joins are atomic on Node's single thread; confirmed by two layers) and **disconnect handling**, which is by-scope story 2.6. Remaining items are Low polish + scope-deferrals._
+
+### Patches — quality (your call)
+
+- [x] [Review][Patch][Low] **(Fixed)** **`match/state` action allows `view: null` → blank `match` screen.** The action/reducer type is `view: PlayerView | null`, and `App` renders `null` when `state.view` is null on the `match` screen. The server always emits a real view, so this is only reachable via a null dispatch — tighten the `match/state` action to `view: PlayerView` (drop `| null`). [`reducer.ts`, `App.tsx`]
+- [x] [Review][Patch][Low] **(Fixed)** **Misleading join-guard error codes.** A join into a non-`waiting` match returns `MATCH_NOT_FOUND` ("Match is not waiting"), and a same-socket re-join returns `MATCH_FULL` ("Already joined") — both codes misrepresent the cause. Use accurate codes/messages (e.g. a distinct `ALREADY_JOINED`/`MATCH_STARTED`, or at least truthful messages). [`sockets/matchHandlers.ts`, protocol `CommandErrorCode`]
+- [x] [Review][Patch][Low] **(Fixed)** **Stray debug background colors** left in (`lightblue` HomeScreen, `blue` JoinScreen, `lightgreen` WaitingView + the App fallback `<div>`) — scaffolding leftovers. Remove them. [`HomeScreen.tsx`, `JoinScreen.tsx`, `WaitingView.tsx`, `App.tsx`]
+- [x] [Review][Patch][Low] **(Fixed)** **Debug JSON panel ships in production.** `MatchScreen`'s "Inspect JSON Engine State" dumps `JSON.stringify(view)`. It's safe today (the `PlayerView` is already projection-filtered), but it's a standing leak surface — remove it or gate it behind a dev flag. [`MatchScreen.tsx`]
+- [x] [Review][Patch][Low] **(Fixed — test)** `projectFor` test covers 3g only on the input side. The test builds a `MatchState` with `statDefinitions` but doesn't assert the projected `PlayerView` *contains* `statDefinitions`. Add that output assertion. [`projection/projectFor.test.ts`]
+
+### Deferred
+
+- [x] [Review][Defer] **No disconnect handler** — a lobby player who disconnects stays in `entry.players`; a later 2nd join still auto-starts and emits `match:state` to the dead socket. Disconnect detection + forfeit is **story 2.6** (FR5); the lobby-cleanup belongs there.
+- [x] [Review][Defer] **Joiner can hang on `waiting`** if the creator's socket-join silently failed (no client waiting-timeout, no lobby-presence signal). Lobby robustness — pair with the 2.6 disconnect work; a client-side waiting timeout is the likely fix.
+- [x] [Review][Defer] **Same-socket dedupe keys on `socket.id`**, which changes on reconnect, so it can't catch a reconnecting same-player. Proper per-player identity uses the **token** seam — the deferred reconnect work (post-2.6).
+
+### Dismissed
+
+- **Auto-start race (raised High)** — false positive: the `match:join` handler runs synchronously with no `await` between the guard, the push, and the `===2` start; Node's single thread makes it atomic. Both other layers concur. Not reachable.
+- **Interactive stat-selection scaffolding** (`onSelectStat` buttons, `isYourTurn` gating, "CHOOSE A STAT" banner) — accepted: harmless 2.4 groundwork, never wired (`onSelectStat` is never passed → no-op), buttons disabled off-turn. Strays from 2.3 scope but is not a defect.
+- **Elaborate styling** (~200 lines) vs the spec's "minimal styling" — accepted (the table looks great). Note for next time: the time-to-playable counter-metric favors leaner UI in these steps.
+- `statDefinitions` shipped in every view — verified public/non-hidden (deck stat labels, identical for both players).
+- `createMatch` deal not seeded/recorded (live uses `defaultRng`) — accepted; reproducing a live deal isn't a v1 need (tests seed).
+- `initialScreen()` doesn't validate the matchId exists — accepted; a bad link surfaces `MATCH_NOT_FOUND` on submit.
+- NFR2 test substring matching — accepted; card ids are distinct kebab strings, a reasonable safety net.
 
 ### File List
 

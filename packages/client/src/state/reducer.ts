@@ -30,7 +30,7 @@ export type Action =
     }
   | {
       type: 'match/state';
-      view: PlayerView | null;
+      view: PlayerView;
     };
 
 export const initialState: State = {

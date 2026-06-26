@@ -58,7 +58,7 @@ export function JoinScreen({
   };
 
   return (
-    <div style={{ backgroundColor: 'blue' }}>
+    <div>
       <form onSubmit={(e) => e.preventDefault()}>
         {error && (
           <p className="error-message" style={{ color: 'red' }}>

@@ -50,7 +50,10 @@ export function registerMatchHandlers(
         if (entry.status !== 'waiting') {
           ack({
             ok: false,
-            error: { code: 'MATCH_NOT_FOUND', message: 'Match is not waiting' },
+            error: {
+              code: 'MATCH_STARTED',
+              message: 'Match has already started',
+            },
           });
           return;
         }
@@ -58,7 +61,7 @@ export function registerMatchHandlers(
         if (entry.players.some((p) => p.socketId === socket.id)) {
           ack({
             ok: false,
-            error: { code: 'MATCH_FULL', message: 'Already joined' },
+            error: { code: 'ALREADY_JOINED', message: 'Already joined' },
           });
           return;
         }

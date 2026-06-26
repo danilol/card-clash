@@ -22,7 +22,7 @@ export function WaitingView({ view }: WaitingViewProps): React.JSX.Element {
   };
 
   return (
-    <div style={{ backgroundColor: 'lightgreen' }}>
+    <div>
       <h1>Hi {view?.nickname}!</h1>
       <p>Waiting for opponent…</p>
       {view && <p>Share this link: {link}</p>}

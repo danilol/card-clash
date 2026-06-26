@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CardView } from './CardView';
 import type { PlayerView } from '@card-clash/engine';
 
@@ -11,7 +11,6 @@ export function MatchScreen({
   view,
   onSelectStat,
 }: MatchScreenProps): React.JSX.Element {
-  const [showDebug, setShowDebug] = useState(false);
   const isYourTurn = view?.chooser === view?.you;
 
   return (
@@ -62,24 +61,6 @@ export function MatchScreen({
           <CardView view={view} onSelectStat={onSelectStat} />
         </div>
       </main>
-
-      <footer style={styles.footerContainer}>
-        <button
-          style={styles.debugToggle}
-          onClick={() => setShowDebug(!showDebug)}
-        >
-          {showDebug
-            ? '🙈 Hide JSON Payload Data'
-            : '⚙️ Inspect JSON Engine State'}
-        </button>
-        {showDebug && (
-          <div style={styles.debugPayload}>
-            <pre style={{ margin: 0, fontSize: '0.85rem' }}>
-              {JSON.stringify(view, null, 2)}
-            </pre>
-          </div>
-        )}
-      </footer>
     </div>
   );
 }

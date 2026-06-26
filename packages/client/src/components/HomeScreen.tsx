@@ -74,7 +74,7 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
 
   return (
     <form onSubmit={(e) => e.preventDefault()}>
-      <div className="home-screen" style={{ backgroundColor: 'lightblue' }}>
+      <div>
         <div>
           <h1>Card Clash</h1>
           <p>Create a match and get a shareable link</p>

@@ -33,4 +33,6 @@ export type ErrorPayload = {
 export type CommandErrorCode =
   | 'INVALID_BODY'
   | 'MATCH_NOT_FOUND'
-  | 'MATCH_FULL';
+  | 'MATCH_FULL'
+  | 'MATCH_STARTED'
+  | 'ALREADY_JOINED';
