@@ -19,5 +19,6 @@ export function projectFor(state: MatchState, viewerId: PlayerId): PlayerView {
     yourTopCardIsSuperTrump: state.superTrumpCardId === yourStack[0]?.id,
     lastRound: state.lastRound,
     result: state.result,
+    statDefinitions: state.statDefinitions,
   };
 }

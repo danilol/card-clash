@@ -2,6 +2,10 @@ import { useEffect, useReducer } from 'react';
 import { reducer, initialState } from './state/reducer';
 import { socket } from './socket';
 import { HomeScreen } from './components/HomeScreen';
+import { JoinScreen } from './components/JoinScreen';
+import type { PlayerView } from '@card-clash/engine';
+import { MatchScreen } from './components/MatchScreen';
+import { WaitingView } from './components/WaitingView';
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -15,10 +19,14 @@ function App() {
     function onConnectError() {
       dispatch({ type: 'disconnected' });
     }
+    function onMatchState(view: PlayerView) {
+      dispatch({ type: 'match/state', view });
+    }
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('connect_error', onConnectError);
+    socket.on('match:state', onMatchState);
 
     if (socket.connected) dispatch({ type: 'connected' });
 
@@ -26,6 +34,7 @@ function App() {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onConnectError);
+      socket.off('match:state', onMatchState);
     };
   }, []);
 
@@ -33,7 +42,11 @@ function App() {
     case 'home':
       return <HomeScreen dispatch={dispatch} />;
     case 'waiting':
-      return <div>Waiting for opponent... {state.status}</div>;
+      return <WaitingView view={state.match} />;
+    case 'join':
+      return <JoinScreen dispatch={dispatch} />;
+    case 'match':
+      return state.view ? <MatchScreen view={state.view} /> : null;
     default:
       return (
         <div>

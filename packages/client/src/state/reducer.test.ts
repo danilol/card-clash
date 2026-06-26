@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import type { PlayerView } from '@card-clash/engine';
 import { reducer, initialState, type Action } from './reducer';
 
 describe('app reducer', () => {
-  it('starts on the home screen, connecting, with no match', () => {
+  it('starts connecting, with no match and no view', () => {
     expect(initialState.status).toBe('connecting');
-    expect(initialState.screen).toBe('home');
     expect(initialState.match).toBeNull();
+    expect(initialState.view).toBeNull();
   });
 
   it('connected → status connected, screen and match untouched', () => {
     const next = reducer(initialState, { type: 'connected' });
     expect(next.status).toBe('connected');
-    expect(next.screen).toBe('home');
     expect(next.match).toBeNull();
   });
 
@@ -26,6 +26,7 @@ describe('app reducer', () => {
       type: 'match/joined',
       matchId: 'm-1',
       link: 'http://localhost:5173/?match=m-1',
+      nickname: 'Player 1',
       playerId: 'p-1',
       token: 't-1',
     };
@@ -34,9 +35,29 @@ describe('app reducer', () => {
     expect(next.match).toEqual({
       matchId: 'm-1',
       link: 'http://localhost:5173/?match=m-1',
+      nickname: 'Player 1',
       playerId: 'p-1',
       token: 't-1',
     });
+  });
+
+  it('match/state → moves to the match screen and stores the view', () => {
+    const view = {
+      you: 'p-1',
+      yourTopCard: null,
+      yourStackCount: 16,
+      opponentStackCount: 16,
+      potCount: 0,
+      chooser: 'p-1',
+      yourTopCardIsSuperTrump: false,
+      statDefinitions: [],
+      lastRound: null,
+      result: null,
+    } as unknown as PlayerView;
+
+    const next = reducer(initialState, { type: 'match/state', view });
+    expect(next.screen).toBe('match');
+    expect(next.view).toBe(view);
   });
 
   it('a later connected/disconnected does not knock you off the waiting screen', () => {
@@ -44,6 +65,7 @@ describe('app reducer', () => {
       type: 'match/joined',
       matchId: 'm-1',
       link: 'l',
+      nickname: 'Player 1',
       playerId: 'p-1',
       token: 't-1',
     });

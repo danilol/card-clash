@@ -84,4 +84,5 @@ export type PlayerView = {
   readonly yourTopCardIsSuperTrump: boolean;
   readonly lastRound: RoundOutcome | null;
   readonly result: MatchResult | null;
+  readonly statDefinitions: readonly StatDefinition[];
 };
