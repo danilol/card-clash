@@ -1,8 +1,11 @@
+import type { MatchState } from '@card-clash/engine';
+
 export type MatchEntry = {
   matchId: string;
   status: EntryStatus;
   players: Player[];
   createdAt: number;
+  state: MatchState | null;
 };
 
 export type Player = {
@@ -23,6 +26,7 @@ export function createMatchEntry(): MatchEntry {
     status: 'waiting',
     players: [],
     createdAt: Date.now(),
+    state: null,
   };
   matches.set(matchId, entry);
   return entry;
@@ -38,5 +42,15 @@ export function addPlayer(matchId: string, player: Player): MatchEntry {
     throw new Error('Match not found');
   }
   entry.players.push(player);
+  return entry;
+}
+
+export function startMatch(matchId: string, state: MatchState): MatchEntry {
+  const entry = matches.get(matchId);
+  if (!entry) {
+    throw new Error('Match not found');
+  }
+  entry.state = state;
+  entry.status = 'playing';
   return entry;
 }

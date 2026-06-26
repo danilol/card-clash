@@ -2,13 +2,12 @@ import { useState } from 'react';
 import type { AckPayload } from '@card-clash/engine';
 import { socket } from '../socket';
 import type { Dispatch } from 'react';
-import type { Action } from '../state/reducer';
+import type { Action, Match } from '../state/reducer';
 
 export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
   const [nickname, setNickname] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [matchLink, setMatchLink] = useState<string | null>(null);
 
   const handleCreateMatch = async () => {
     if (!nickname.trim()) {
@@ -57,15 +56,15 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
       }
 
       const link = `${window.location.origin}/?match=${data.matchId}`;
-      setMatchLink(link);
 
-      dispatch({
-        type: 'match/joined',
+      const joinMatchPayload: Match = {
         matchId: data.matchId,
         link: link,
+        nickname,
         playerId: ack.playerId,
         token: ack.token,
-      });
+      };
+      dispatch({ type: 'match/joined', ...joinMatchPayload });
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -74,42 +73,37 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
   };
 
   return (
-    <div className="home-screen">
-      <div>
-        <h1>Card Clash</h1>
-        <p>Create a match and get a shareable link</p>
-      </div>
-
-      <div>
-        <label htmlFor="nickname">Nickname</label>
-        <input
-          type="text"
-          id="nickname"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          disabled={isLoading}
-          placeholder="Enter your match nickname"
-        />
-      </div>
-
-      {error && (
-        <p className="error-message" style={{ color: 'red' }}>
-          {error}
-        </p>
-      )}
-
-      <div>
-        <button onClick={handleCreateMatch} disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create'}
-        </button>
-      </div>
-
-      {matchLink && (
+    <form onSubmit={(e) => e.preventDefault()}>
+      <div className="home-screen" style={{ backgroundColor: 'lightblue' }}>
         <div>
-          <p>Match link</p>
-          <p>{matchLink}</p>
+          <h1>Card Clash</h1>
+          <p>Create a match and get a shareable link</p>
         </div>
-      )}
-    </div>
+
+        <div>
+          <label htmlFor="nickname">Nickname</label>
+          <input
+            type="text"
+            id="nickname"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            disabled={isLoading}
+            placeholder="Enter your match nickname"
+          />
+        </div>
+
+        {error && (
+          <p className="error-message" style={{ color: 'red' }}>
+            {error}
+          </p>
+        )}
+
+        <div>
+          <button onClick={handleCreateMatch} disabled={isLoading}>
+            {isLoading ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </form>
   );
 }

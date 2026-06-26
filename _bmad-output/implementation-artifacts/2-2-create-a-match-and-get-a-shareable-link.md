@@ -84,12 +84,12 @@ friend". No cards are dealt yet — dealing happens in 2.3 when the second playe
   - [x] Client reducer test (`state/reducer.test.ts`, extended): `match/joined` sets `screen`/`match`, reconnect doesn't drop the waiting screen, no mutation; existing connection-status cases still pass.
   - [x] **Socket `match:join` handshake (token issuance):** manual-verified (create → link shown → "waiting" → server logs the join), consistent with 2.1's precedent; automated socket round-trip deferred.
 
-- [ ] **Task 7: Prove it (AC: all)**
+- [x] **Task 7: Prove it (AC: all)**
   - [x] `npm run dev` → open the client → type a nickname → Create → a link appears and the page shows "waiting for opponent"; the server logs the join. (Manual smoke — verified.)
   - [x] `npm run typecheck` — strict-clean across all four packages (includes the protocol compile-safety check).
   - [x] `npm test` — green: 128 total.
-  - [ ] `npm run format` before commit.
-  - [ ] Commit on `story/2.2`, push, open PR, run `bmad-code-review` per process.
+  - [x] `npm run format` before commit.
+  - [x] Commit on `story/2.2`, push, open PR, run `bmad-code-review` per process. (Merged via PR #12.)
 
 ## Dev Notes
 

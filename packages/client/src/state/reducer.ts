@@ -1,13 +1,22 @@
+import type { PlayerView } from '@card-clash/engine';
+
 export type Status = 'connecting' | 'connected' | 'disconnected';
-export type Screen = 'home' | 'waiting';
+export type Screen = 'home' | 'waiting' | 'join' | 'match';
 export type Match = {
   matchId: string;
   link: string;
+  nickname: string;
   playerId: string;
   token: string;
 } | null;
 
-type State = { status: Status; screen: Screen; match: Match };
+export type State = {
+  status: Status;
+  screen: Screen;
+  match: Match;
+  view: PlayerView | null;
+};
+
 export type Action =
   | { type: 'connected' }
   | { type: 'disconnected' }
@@ -15,14 +24,20 @@ export type Action =
       type: 'match/joined';
       matchId: string;
       link: string;
+      nickname: string;
       playerId: string;
       token: string;
+    }
+  | {
+      type: 'match/state';
+      view: PlayerView | null;
     };
 
 export const initialState: State = {
   status: 'connecting',
-  screen: 'home',
+  screen: initialScreen(),
   match: null,
+  view: null,
 };
 
 export function reducer(state: State, action: Action): State {
@@ -39,9 +54,23 @@ export function reducer(state: State, action: Action): State {
         match: {
           matchId: action.matchId,
           link: action.link,
+          nickname: action.nickname,
           playerId: action.playerId,
           token: action.token,
         },
+        view: null,
+      };
+    case 'match/state':
+      return {
+        ...state,
+        screen: 'match',
+        view: action.view,
       };
   }
+}
+
+function initialScreen(): Screen {
+  if (typeof window === 'undefined') return 'home';
+  const matchId = new URLSearchParams(window.location.search).get('match');
+  return matchId ? 'join' : 'home';
 }

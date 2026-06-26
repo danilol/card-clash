@@ -38,3 +38,8 @@
 - Join hardening (story 2.3): `match:join` has no player cap, no `status === 'waiting'` guard, and no per-socket dedupe — a match can accept a 3rd+ player or a repeated join from the same socket. The `MATCH_FULL` / join-to-full path is explicitly 2.3 per the 2.2 scope guard; add the cap + status check + socket dedupe there.
 - `matchStore` eviction (story 2.5 / Epic 3): the in-memory `Map` only grows — every created match (plus abandoned lobbies) lives for the process lifetime. Eviction is tied to `match:ended` + the FR27 write; an abandoned-lobby TTL is a later hardening. No match-end lifecycle exists yet to hook.
 - Token enforcement (story 2.4+): the per-player `token` is issued at join but nothing verifies it yet. By design — enforcement begins when in-match gameplay events carry the token.
+
+## Deferred from: code review of 2-3-friend-joins-cards-are-dealt-the-table-appears (2026-06-26)
+
+- Client DOM test infrastructure (early 2.4): set the client vitest `environment: 'jsdom'` and add a render lib (e.g. @testing-library/react). Unblocks the deferred 2.3 tests — `CardView` render (8 labeled stats + holder-only trump badge) and the join-from-URL initial screen — both manually verified for 2.3. 2.4 adds interactive stat selection, which wants component tests anyway.
+- `MATCH_FULL` (and the status/socket-dedupe) join guards have no automated test — they live inside the socket handler. Extract the guard into a pure `canJoin(entry, socketId)` helper to unit-test, or add a socket round-trip test when socket integration testing is set up. Manually verified for 2.3.
