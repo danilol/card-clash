@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CardView } from './CardView';
 import type { PlayerView, StatKey, StatDefinition } from '@card-clash/engine';
 
@@ -15,6 +15,8 @@ export function MatchScreen({
   onSelectStat,
   disabled = false,
 }: MatchScreenProps): React.JSX.Element {
+  const [showDebug, setShowDebug] = useState(false);
+
   const getStatLabel = (
     key: string,
     definitions: readonly StatDefinition[],
@@ -26,10 +28,10 @@ export function MatchScreen({
 
   return (
     <>
-      {error && (
-        <div style={{ color: '#e74c3c', textAlign: 'center' }}>{error}</div>
-      )}
+      {error && <div style={styles.errorBanner}>{error}</div>}
+
       <div style={styles.pageWrapper}>
+        {/* 1. SCOREBOARD HEADER */}
         <header style={styles.scoreboard}>
           <div style={styles.scoreBlock}>
             <span style={styles.scoreLabel}>YOUR DECK</span>
@@ -50,101 +52,100 @@ export function MatchScreen({
             </span>
           </div>
 
-          {view.lastRound &&
-            (() => {
-              const isWinnerYou = view.lastRound.winner === view.you;
-              const isTie = view.lastRound.winner === null;
-
-              const yourPlayedCard = view.lastRound.playedCards[view.you]?.[0];
-              const opponentId =
-                Object.keys(view.lastRound.playedCards).find(
-                  (id) => id !== view.you,
-                ) || '';
-              const opponentPlayedCard =
-                view.lastRound.playedCards[opponentId]?.[0];
-
-              const statKey = view.lastRound.stat;
-              const statLabel = getStatLabel(statKey, view.statDefinitions);
-              const yourValue = yourPlayedCard?.stats?.[statKey];
-              const opponentValue = opponentPlayedCard?.stats?.[statKey];
-
-              return (
-                <div
-                  style={{
-                    ...styles.lastRoundResult,
-                    borderLeft: isTie
-                      ? '4px solid #f1c40f'
-                      : isWinnerYou
-                        ? '4px solid #2ecc71'
-                        : '4px solid #e74c3c',
-                  }}
-                >
-                  <div style={styles.lastRoundSummary}>
-                    <span style={styles.lastRoundLabel}>
-                      LAST ROUND OUTCOME
-                    </span>
-                    <h3
-                      style={{
-                        ...styles.lastRoundStatus,
-                        color: isTie
-                          ? '#f1c40f'
-                          : isWinnerYou
-                            ? '#2ecc71'
-                            : '#e74c3c',
-                      }}
-                    >
-                      {isTie
-                        ? "🤝 IT'S A DRAW!"
-                        : isWinnerYou
-                          ? '🎉 YOU WON THE ROUND'
-                          : '💥 OPPONENT WON THE ROUND'}
-                    </h3>
-                  </div>
-
-                  <div style={styles.showdownRow}>
-                    <div style={styles.showdownFighter}>
-                      <span style={styles.fighterName}>
-                        {yourPlayedCard?.name || 'You'}
-                      </span>
-                      <span style={styles.fighterStat}>
-                        {yourValue?.toLocaleString() ?? 'N/A'}
-                      </span>
-                    </div>
-
-                    <div style={styles.vsBadge}>
-                      VS <br />
-                      <small style={{ fontSize: '0.65rem', color: '#aaa' }}>
-                        {statLabel}
-                      </small>
-                    </div>
-
-                    <div style={styles.showdownFighter}>
-                      <span
-                        style={{ ...styles.fighterName, textAlign: 'right' }}
-                      >
-                        {opponentPlayedCard?.name || 'Opponent'}
-                      </span>
-                      <span
-                        style={{
-                          ...styles.fighterStat,
-                          color: '#e74c3c',
-                          textAlign: 'right',
-                        }}
-                      >
-                        {opponentValue?.toLocaleString() ?? 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
           <div style={styles.scoreBlock}>
             <span style={styles.scoreLabel}>OPPONENT</span>
             <span style={styles.scoreValue}>🎴 {view.opponentStackCount}</span>
           </div>
         </header>
 
+        {/* 2. LAST ROUND OUTCOME HISTORY */}
+        {view.lastRound &&
+          (() => {
+            const isWinnerYou = view.lastRound.winner === view.you;
+            const isTie = view.lastRound.winner === null;
+
+            // Fixed the array index extraction safely here
+            const yourPlayedCard = view.lastRound.playedCards[view.you]?.[0];
+            const opponentId =
+              Object.keys(view.lastRound.playedCards).find(
+                (id) => id !== view.you,
+              ) || '';
+            const opponentPlayedCard =
+              view.lastRound.playedCards[opponentId]?.[0];
+
+            const statKey = view.lastRound.stat;
+            const statLabel = getStatLabel(statKey, view.statDefinitions);
+            const yourValue = yourPlayedCard?.stats?.[statKey];
+            const opponentValue = opponentPlayedCard?.stats?.[statKey];
+
+            return (
+              <div
+                style={{
+                  ...styles.lastRoundResult,
+                  borderLeft: isTie
+                    ? '4px solid #f1c40f'
+                    : isWinnerYou
+                      ? '4px solid #2ecc71'
+                      : '4px solid #e74c3c',
+                }}
+              >
+                <div style={styles.lastRoundSummary}>
+                  <span style={styles.lastRoundLabel}>LAST ROUND OUTCOME</span>
+                  <h3
+                    style={{
+                      ...styles.lastRoundStatus,
+                      color: isTie
+                        ? '#f1c40f'
+                        : isWinnerYou
+                          ? '#2ecc71'
+                          : '#e74c3c',
+                    }}
+                  >
+                    {isTie
+                      ? "🤝 IT'S A DRAW!"
+                      : isWinnerYou
+                        ? '🎉 YOU WON THE ROUND'
+                        : '💥 OPPONENT WON THE ROUND'}
+                  </h3>
+                </div>
+
+                <div style={styles.showdownRow}>
+                  <div style={styles.showdownFighter}>
+                    <span style={styles.fighterName}>
+                      {yourPlayedCard?.name || 'You'}
+                    </span>
+                    <span style={styles.fighterStat}>
+                      {yourValue?.toLocaleString() ?? 'N/A'}
+                    </span>
+                  </div>
+
+                  <div style={styles.vsBadge}>
+                    VS <br />
+                    <small style={{ fontSize: '0.65rem', color: '#aaa' }}>
+                      {statLabel}
+                    </small>
+                  </div>
+
+                  <div style={styles.showdownFighter}>
+                    <span style={{ ...styles.fighterName, textAlign: 'right' }}>
+                      {opponentPlayedCard?.name || 'Opponent'}
+                    </span>
+                    <span
+                      style={{
+                        ...styles.fighterStat,
+                        color: '#e74c3c',
+                        textAlign: 'right',
+                      }}
+                    >
+                      {opponentValue?.toLocaleString() ?? 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+        {/* 3. PHASE TURN BANNER */}
         <div
           style={{
             ...styles.turnBanner,
@@ -160,6 +161,7 @@ export function MatchScreen({
           </h2>
         </div>
 
+        {/* 4. MAIN BATTLE CARD FIELD */}
         <main style={styles.arena}>
           <div style={styles.cardWrapper}>
             <CardView
@@ -169,14 +171,40 @@ export function MatchScreen({
             />
           </div>
         </main>
+
+        {/* 5. COLLAPSIBLE DEBUG GER FOOTER */}
+        <footer style={styles.footerContainer}>
+          <button
+            style={styles.debugToggle}
+            onClick={() => setShowDebug(!showDebug)}
+          >
+            {showDebug
+              ? '🙈 Hide JSON Payload Data'
+              : '⚙️ Inspect JSON Engine State'}
+          </button>
+          {showDebug && (
+            <div style={styles.debugPayload}>
+              <pre
+                style={{
+                  margin: 0,
+                  fontSize: '0.85rem',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {JSON.stringify(view, null, 2)}
+              </pre>
+            </div>
+          )}
+        </footer>
       </div>
     </>
   );
 }
 
+// 📐 Finished compiled styles tree object
 const styles = {
   pageWrapper: {
-    backgroundColor: '#0f1115', // Sleek dark space background
+    backgroundColor: '#0f1115',
     backgroundImage:
       'radial-gradient(circle at 50% 50%, #1a1f29 0%, #0f1115 100%)',
     color: '#f5f6fa',
@@ -187,6 +215,16 @@ const styles = {
     padding: '20px',
     boxSizing: 'border-box' as const,
   },
+  errorBanner: {
+    backgroundColor: 'rgba(231, 76, 60, 0.2)',
+    borderBottom: '2px solid #e74c3c',
+    color: '#e74c3c',
+    textAlign: 'center' as const,
+    padding: '10px',
+    fontWeight: 'bold',
+    fontSize: '0.95rem',
+    fontFamily: 'sans-serif',
+  },
   scoreboard: {
     display: 'flex',
     justifyContent: 'center',
@@ -196,10 +234,12 @@ const styles = {
     border: '1px solid #2c3545',
     padding: '12px 30px',
     borderRadius: '16px',
-    maxWidth: '600px',
+    maxWidth: '560px',
+    width: '100%',
     margin: '0 auto 20px auto',
     boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
     backdropFilter: 'blur(8px)',
+    boxSizing: 'border-box' as const,
   },
   scoreBlock: {
     display: 'flex',
@@ -239,61 +279,8 @@ const styles = {
     color: '#f1c40f',
     textShadow: '0 0 10px rgba(241,196,15,0.4)',
   },
-  turnBanner: {
-    width: '100%',
-    padding: '10px 0',
-    textAlign: 'center' as const,
-    marginBottom: '25px',
-  },
-  turnText: {
-    margin: 0,
-    fontSize: '1.1rem',
-    letterSpacing: '2px',
-    fontWeight: '800',
-    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-  },
-  arena: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingBottom: '40px',
-  },
-  cardWrapper: {
-    transform: 'scale(1.05)', // Gently pops your card layout size
-    transition: 'transform 0.3s ease',
-  },
-  footerContainer: {
-    marginTop: 'auto',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    gap: '10px',
-  },
-  debugToggle: {
-    backgroundColor: '#1c2331',
-    color: '#a4b0be',
-    border: '1px solid #2f3542',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    transition: 'all 0.2s',
-  },
-  debugPayload: {
-    width: '100%',
-    maxWidth: '800px',
-    maxHeight: '250px',
-    overflowY: 'auto' as const,
-    backgroundColor: '#090a0f',
-    border: '1px solid #1c2331',
-    borderRadius: '8px',
-    padding: '15px',
-    color: '#7bed9f',
-    boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.5)',
-  },
   lastRoundResult: {
-    backgroundColor: '#161a23',
+    backgroundColor: '#151922',
     borderRadius: '12px',
     padding: '14px 20px',
     maxWidth: '560px',
@@ -303,6 +290,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '10px',
+    boxSizing: 'border-box' as const,
   },
   lastRoundSummary: {
     display: 'flex',
@@ -358,5 +346,56 @@ const styles = {
     textAlign: 'center' as const,
     lineHeight: '1.2',
     minWidth: '90px',
+  },
+  turnBanner: {
+    width: '100%',
+    padding: '10px 0',
+    textAlign: 'center' as const,
+    marginBottom: '25px',
+  },
+  turnText: {
+    margin: 0,
+    fontSize: '1.1rem',
+    letterSpacing: '2px',
+    fontWeight: '800',
+    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+  },
+  arena: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingBottom: '40px',
+  },
+  cardWrapper: { transform: 'scale(1.05)', transition: 'transform 0.3s ease' },
+  footerContainer: {
+    marginTop: 'auto',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '10px',
+  },
+  debugToggle: {
+    backgroundColor: '#1c2331',
+    color: '#a4b0be',
+    border: '1px solid #2f3542',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    transition: 'all 0.2s',
+  },
+  debugPayload: {
+    width: '100%',
+    maxWidth: '560px',
+    maxHeight: '200px',
+    overflowY: 'auto' as const,
+    backgroundColor: '#090a0f',
+    border: '1px solid #1c2331',
+    borderRadius: '8px',
+    padding: '15px',
+    color: '#7bed9f',
+    boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.5)',
+    textAlign: 'left' as const,
   },
 };

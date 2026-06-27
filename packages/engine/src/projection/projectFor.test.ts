@@ -33,6 +33,7 @@ function makeState(opts: {
   superTrumpCardId?: string;
   lastRound?: RoundOutcome | null;
   result?: MatchState['result'];
+  roundsPlayed?: number;
 }): MatchState {
   const {
     aliceStack,
@@ -42,6 +43,7 @@ function makeState(opts: {
     superTrumpCardId = NO_TRUMP_IN_PLAY,
     lastRound = null,
     result = null,
+    roundsPlayed = 0,
   } = opts;
   return {
     players: [ALICE, BOB],
@@ -49,7 +51,7 @@ function makeState(opts: {
     pot,
     superTrumpCardId,
     chooser,
-    roundsPlayed: 0,
+    roundsPlayed,
     statDefinitions: onePieceDeck.stats,
     lastRound,
     result,
@@ -69,6 +71,7 @@ describe('projectFor — each player sees only their own view (AC 1)', () => {
       pot: [CHOPPER],
       chooser: ALICE,
       lastRound,
+      roundsPlayed: 5,
     });
 
     const view = projectFor(state, ALICE);
@@ -80,6 +83,7 @@ describe('projectFor — each player sees only their own view (AC 1)', () => {
     expect(view.chooser).toBe(ALICE);
     expect(view.lastRound).toEqual(lastRound);
     expect(view.result).toBeNull();
+    expect(view.roundsPlayed).toBe(5);
   });
 
   it('gives each player their OWN top card', () => {

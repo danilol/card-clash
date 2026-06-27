@@ -2,7 +2,11 @@ import type {
   PlayerView,
   CommandErrorCode as EngineCommandErrorCode,
 } from '../types.js';
-import type { MatchJoinCommand, SelectStatPayload } from './commands.js';
+import type {
+  MatchJoinCommand,
+  RematchCommand,
+  SelectStatPayload,
+} from './commands.js';
 
 export interface ClientToServerEvents {
   'match:join': (
@@ -10,6 +14,8 @@ export interface ClientToServerEvents {
     ack: (response: AckPayload) => void,
   ) => void;
   'match:selectStat': (payload: SelectStatPayload) => void;
+  'match:ended': () => void;
+  'match:rematch': (payload: RematchCommand) => void;
 }
 
 export interface ServerToClientEvents {
@@ -40,6 +46,6 @@ export type LobbyErrorCode =
 export type WireErrorCode = LobbyErrorCode | EngineCommandErrorCode;
 
 export type ErrorPayload = {
-  code: WireErrorCode; // was: CommandErrorCode
+  code: WireErrorCode;
   message: string;
 };

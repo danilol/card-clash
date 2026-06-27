@@ -1,7 +1,7 @@
 import type { PlayerView } from '@card-clash/engine';
 
 export type Status = 'connecting' | 'connected' | 'disconnected';
-export type Screen = 'home' | 'waiting' | 'join' | 'match';
+export type Screen = 'home' | 'waiting' | 'join' | 'match' | 'result';
 export type Match = {
   matchId: string;
   link: string;
@@ -16,6 +16,7 @@ export type State = {
   match: Match;
   view: PlayerView | null;
   error: string | null;
+  rematchPending: boolean;
 };
 
 export type Action =
@@ -34,6 +35,13 @@ export type Action =
       view: PlayerView;
     }
   | {
+      type: 'match/ended';
+      view: PlayerView;
+    }
+  | {
+      type: 'match/rematchPending';
+    }
+  | {
       type: 'match/error';
       error: string;
     };
@@ -44,6 +52,7 @@ export const initialState: State = {
   match: null,
   view: null,
   error: null,
+  rematchPending: false,
 };
 
 export function reducer(state: State, action: Action): State {
@@ -72,11 +81,24 @@ export function reducer(state: State, action: Action): State {
         screen: 'match',
         view: action.view,
         error: null,
+        rematchPending: false,
       };
     case 'match/error':
       return {
         ...state,
         error: action.error,
+      };
+    case 'match/ended':
+      return {
+        ...state,
+        screen: 'result',
+        view: action.view,
+        rematchPending: false,
+      };
+    case 'match/rematchPending':
+      return {
+        ...state,
+        rematchPending: true,
       };
   }
 }

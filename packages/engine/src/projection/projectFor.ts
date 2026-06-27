@@ -20,5 +20,6 @@ export function projectFor(state: MatchState, viewerId: PlayerId): PlayerView {
     lastRound: state.lastRound,
     result: state.result,
     statDefinitions: state.statDefinitions,
+    roundsPlayed: state.roundsPlayed,
   };
 }

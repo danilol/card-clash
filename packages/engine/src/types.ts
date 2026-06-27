@@ -85,4 +85,5 @@ export type PlayerView = {
   readonly lastRound: RoundOutcome | null;
   readonly result: MatchResult | null;
   readonly statDefinitions: readonly StatDefinition[];
+  readonly roundsPlayed: number;
 };
