@@ -54,3 +54,15 @@ export function startMatch(matchId: string, state: MatchState): MatchEntry {
   entry.status = 'playing';
   return entry;
 }
+
+export function updateMatchState(
+  matchId: string,
+  state: MatchState,
+): MatchEntry {
+  const entry = matches.get(matchId);
+  if (!entry) {
+    throw new Error('Match not found');
+  }
+  entry.state = state;
+  return entry;
+}

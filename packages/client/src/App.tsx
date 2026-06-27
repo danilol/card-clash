@@ -1,14 +1,16 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { reducer, initialState } from './state/reducer';
 import { socket } from './socket';
 import { HomeScreen } from './components/HomeScreen';
 import { JoinScreen } from './components/JoinScreen';
-import type { PlayerView } from '@card-clash/engine';
+import type { ErrorPayload, PlayerView, StatKey } from '@card-clash/engine';
 import { MatchScreen } from './components/MatchScreen';
 import { WaitingView } from './components/WaitingView';
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [pending, setPending] = useState(false);
+
   useEffect(() => {
     function onConnect() {
       dispatch({ type: 'connected' });
@@ -21,12 +23,18 @@ function App() {
     }
     function onMatchState(view: PlayerView) {
       dispatch({ type: 'match/state', view });
+      setPending(false);
+    }
+    function onMatchError(payload: ErrorPayload) {
+      dispatch({ type: 'match/error', error: payload.message });
+      setPending(false);
     }
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('connect_error', onConnectError);
     socket.on('match:state', onMatchState);
+    socket.on('match:error', onMatchError);
 
     if (socket.connected) dispatch({ type: 'connected' });
 
@@ -35,6 +43,7 @@ function App() {
       socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onConnectError);
       socket.off('match:state', onMatchState);
+      socket.off('match:error', onMatchError);
     };
   }, []);
 
@@ -45,8 +54,21 @@ function App() {
       return <WaitingView view={state.match} />;
     case 'join':
       return <JoinScreen dispatch={dispatch} />;
-    case 'match':
-      return state.view ? <MatchScreen view={state.view} /> : null;
+    case 'match': {
+      if (!state.view || !state.match) return null;
+      const { matchId, token } = state.match;
+      return (
+        <MatchScreen
+          view={state.view}
+          error={state.error}
+          onSelectStat={(stat: StatKey) => {
+            setPending(true);
+            socket.emit('match:selectStat', { matchId, token, stat });
+          }}
+          disabled={pending}
+        />
+      );
+    }
     default:
       return (
         <div>

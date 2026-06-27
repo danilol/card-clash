@@ -49,3 +49,7 @@
 - Disconnect handling (story 2.6 / FR5): no `socket.on('disconnect', …)` removes a lobby player. A player who drops mid-lobby stays in `entry.players`; a later 2nd join still auto-starts and emits `match:state` to the dead socket. Add lobby cleanup + forfeit in 2.6.
 - Joiner can hang on `waiting` if the creator's socket-join silently failed (no client waiting-timeout, no lobby-presence event). Pair with the 2.6 disconnect work — likely a client-side waiting timeout / lobby-status signal.
 - Reconnect identity: the same-socket dedupe in `match:join` keys on `socket.id` (changes on reconnect), so it can't recognize a reconnecting player. Proper identity uses the per-player token seam — part of the deferred reconnect work (post-2.6).
+
+## Deferred from: code review of 2-4 (2026-06-27)
+
+- Match-end experience (story 2.5): when `applyCommand` returns a state with `result` set, the client still renders the playable table (board "freezes") and the server leaves the entry `status: 'playing'`. 2.5 adds the `ResultScreen`, the `match:ended` event, status→`ended`, and store eviction. Until then the end is invisible and further `selectStat` clicks just get `MATCH_OVER`.
