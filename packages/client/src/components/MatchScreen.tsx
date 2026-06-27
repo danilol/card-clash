@@ -1,162 +1,176 @@
 import React from 'react';
 import { CardView } from './CardView';
-import type { PlayerView, StatKey } from '@card-clash/engine';
+import type { PlayerView, StatKey, StatDefinition } from '@card-clash/engine';
 
 interface MatchScreenProps {
   view: PlayerView;
+  error?: string | null;
   onSelectStat?: (statKey: StatKey) => void;
+  disabled?: boolean;
 }
 
 export function MatchScreen({
   view,
+  error,
   onSelectStat,
+  disabled = false,
 }: MatchScreenProps): React.JSX.Element {
-  const getStatLabel = (key: string, definitions: readonly any[]) => {
+  const getStatLabel = (
+    key: string,
+    definitions: readonly StatDefinition[],
+  ) => {
     return definitions?.find((d) => d.key === key)?.label || key;
   };
 
   const isYourTurn = view?.chooser === view?.you;
 
   return (
-    <div style={styles.pageWrapper}>
-      <header style={styles.scoreboard}>
-        <div style={styles.scoreBlock}>
-          <span style={styles.scoreLabel}>YOUR DECK</span>
-          <span style={styles.scoreValue}>🎴 {view.yourStackCount}</span>
-        </div>
+    <>
+      {error && (
+        <div style={{ color: '#e74c3c', textAlign: 'center' }}>{error}</div>
+      )}
+      <div style={styles.pageWrapper}>
+        <header style={styles.scoreboard}>
+          <div style={styles.scoreBlock}>
+            <span style={styles.scoreLabel}>YOUR DECK</span>
+            <span style={styles.scoreValue}>🎴 {view.yourStackCount}</span>
+          </div>
 
-        <div style={styles.potBlock}>
-          <span style={styles.potLabel}>POT CARDS</span>
-          <span
-            style={{
-              ...styles.potValue,
-              color: view.potCount > 0 ? '#ff7979' : '#f5f6fa',
-              textShadow:
-                view.potCount > 0 ? '0 0 10px rgba(255,121,121,0.4)' : 'none',
-            }}
-          >
-            🃏 {view.potCount}
-          </span>
-        </div>
+          <div style={styles.potBlock}>
+            <span style={styles.potLabel}>POT CARDS</span>
+            <span
+              style={{
+                ...styles.potValue,
+                color: view.potCount > 0 ? '#ff7979' : '#f5f6fa',
+                textShadow:
+                  view.potCount > 0 ? '0 0 10px rgba(255,121,121,0.4)' : 'none',
+              }}
+            >
+              🃏 {view.potCount}
+            </span>
+          </div>
 
-        {view.lastRound &&
-          (() => {
-            const isWinnerYou = view.lastRound.winner === view.you;
-            const isTie = view.lastRound.winner === null;
+          {view.lastRound &&
+            (() => {
+              const isWinnerYou = view.lastRound.winner === view.you;
+              const isTie = view.lastRound.winner === null;
 
-            const yourPlayedCard = view.lastRound.playedCards[view.you]?.[0];
-            const opponentId =
-              Object.keys(view.lastRound.playedCards).find(
-                (id) => id !== view.you,
-              ) || '';
-            const opponentPlayedCard =
-              view.lastRound.playedCards[opponentId]?.[0];
+              const yourPlayedCard = view.lastRound.playedCards[view.you]?.[0];
+              const opponentId =
+                Object.keys(view.lastRound.playedCards).find(
+                  (id) => id !== view.you,
+                ) || '';
+              const opponentPlayedCard =
+                view.lastRound.playedCards[opponentId]?.[0];
 
-            const statKey = view.lastRound.stat;
-            const statLabel = getStatLabel(statKey, view.statDefinitions);
-            const yourValue =
-              yourPlayedCard?.stats?.[
-                statKey as keyof typeof yourPlayedCard.stats
-              ];
-            const opponentValue =
-              opponentPlayedCard?.stats?.[
-                statKey as keyof typeof opponentPlayedCard.stats
-              ];
+              const statKey = view.lastRound.stat;
+              const statLabel = getStatLabel(statKey, view.statDefinitions);
+              const yourValue = yourPlayedCard?.stats?.[statKey];
+              const opponentValue = opponentPlayedCard?.stats?.[statKey];
 
-            return (
-              <div
-                style={{
-                  ...styles.lastRoundResult,
-                  borderLeft: isTie
-                    ? '4px solid #f1c40f'
-                    : isWinnerYou
-                      ? '4px solid #2ecc71'
-                      : '4px solid #e74c3c',
-                }}
-              >
-                <div style={styles.lastRoundSummary}>
-                  <span style={styles.lastRoundLabel}>LAST ROUND OUTCOME</span>
-                  <h3
-                    style={{
-                      ...styles.lastRoundStatus,
-                      color: isTie
-                        ? '#f1c40f'
-                        : isWinnerYou
-                          ? '#2ecc71'
-                          : '#e74c3c',
-                    }}
-                  >
-                    {isTie
-                      ? "🤝 IT'S A DRAW!"
+              return (
+                <div
+                  style={{
+                    ...styles.lastRoundResult,
+                    borderLeft: isTie
+                      ? '4px solid #f1c40f'
                       : isWinnerYou
-                        ? '🎉 YOU WON THE ROUND'
-                        : '💥 OPPONENT WON THE ROUND'}
-                  </h3>
-                </div>
-
-                <div style={styles.showdownRow}>
-                  <div style={styles.showdownFighter}>
-                    <span style={styles.fighterName}>
-                      {yourPlayedCard?.name || 'You'}
+                        ? '4px solid #2ecc71'
+                        : '4px solid #e74c3c',
+                  }}
+                >
+                  <div style={styles.lastRoundSummary}>
+                    <span style={styles.lastRoundLabel}>
+                      LAST ROUND OUTCOME
                     </span>
-                    <span style={styles.fighterStat}>
-                      {yourValue?.toLocaleString() ?? 'N/A'}
-                    </span>
-                  </div>
-
-                  <div style={styles.vsBadge}>
-                    VS <br />
-                    <small style={{ fontSize: '0.65rem', color: '#aaa' }}>
-                      {statLabel}
-                    </small>
-                  </div>
-
-                  <div style={styles.showdownFighter}>
-                    <span style={{ ...styles.fighterName, textAlign: 'right' }}>
-                      {opponentPlayedCard?.name || 'Opponent'}
-                    </span>
-                    <span
+                    <h3
                       style={{
-                        ...styles.fighterStat,
-                        color: '#e74c3c',
-                        textAlign: 'right',
+                        ...styles.lastRoundStatus,
+                        color: isTie
+                          ? '#f1c40f'
+                          : isWinnerYou
+                            ? '#2ecc71'
+                            : '#e74c3c',
                       }}
                     >
-                      {opponentValue?.toLocaleString() ?? 'N/A'}
-                    </span>
+                      {isTie
+                        ? "🤝 IT'S A DRAW!"
+                        : isWinnerYou
+                          ? '🎉 YOU WON THE ROUND'
+                          : '💥 OPPONENT WON THE ROUND'}
+                    </h3>
+                  </div>
+
+                  <div style={styles.showdownRow}>
+                    <div style={styles.showdownFighter}>
+                      <span style={styles.fighterName}>
+                        {yourPlayedCard?.name || 'You'}
+                      </span>
+                      <span style={styles.fighterStat}>
+                        {yourValue?.toLocaleString() ?? 'N/A'}
+                      </span>
+                    </div>
+
+                    <div style={styles.vsBadge}>
+                      VS <br />
+                      <small style={{ fontSize: '0.65rem', color: '#aaa' }}>
+                        {statLabel}
+                      </small>
+                    </div>
+
+                    <div style={styles.showdownFighter}>
+                      <span
+                        style={{ ...styles.fighterName, textAlign: 'right' }}
+                      >
+                        {opponentPlayedCard?.name || 'Opponent'}
+                      </span>
+                      <span
+                        style={{
+                          ...styles.fighterStat,
+                          color: '#e74c3c',
+                          textAlign: 'right',
+                        }}
+                      >
+                        {opponentValue?.toLocaleString() ?? 'N/A'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
-        <div style={styles.scoreBlock}>
-          <span style={styles.scoreLabel}>OPPONENT</span>
-          <span style={styles.scoreValue}>🎴 {view.opponentStackCount}</span>
+          <div style={styles.scoreBlock}>
+            <span style={styles.scoreLabel}>OPPONENT</span>
+            <span style={styles.scoreValue}>🎴 {view.opponentStackCount}</span>
+          </div>
+        </header>
+
+        <div
+          style={{
+            ...styles.turnBanner,
+            background: isYourTurn
+              ? 'linear-gradient(90deg, rgba(39,174,96,0) 0%, rgba(39,174,96,1) 50%, rgba(39,174,96,0) 100%)'
+              : 'linear-gradient(90deg, rgba(192,57,43,0) 0%, rgba(192,57,43,1) 50%, rgba(192,57,43,0) 100%)',
+          }}
+        >
+          <h2 style={styles.turnText}>
+            {isYourTurn
+              ? '⚡ YOUR TURN — CHOOSE A STAT ⚡'
+              : "⏳ OPPONENT'S TURN — WAITING..."}
+          </h2>
         </div>
-      </header>
 
-      <div
-        style={{
-          ...styles.turnBanner,
-          background: isYourTurn
-            ? 'linear-gradient(90deg, rgba(39,174,96,0) 0%, rgba(39,174,96,1) 50%, rgba(39,174,96,0) 100%)'
-            : 'linear-gradient(90deg, rgba(192,57,43,0) 0%, rgba(192,57,43,1) 50%, rgba(192,57,43,0) 100%)',
-        }}
-      >
-        <h2 style={styles.turnText}>
-          {isYourTurn
-            ? '⚡ YOUR TURN — CHOOSE A STAT ⚡'
-            : "⏳ OPPONENT'S TURN — WAITING..."}
-        </h2>
+        <main style={styles.arena}>
+          <div style={styles.cardWrapper}>
+            <CardView
+              view={view}
+              onSelectStat={onSelectStat}
+              disabled={disabled}
+            />
+          </div>
+        </main>
       </div>
-
-      <main style={styles.arena}>
-        <div style={styles.cardWrapper}>
-          <CardView view={view} onSelectStat={onSelectStat} />
-        </div>
-      </main>
-    </div>
+    </>
   );
 }
 

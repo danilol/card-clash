@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { reducer, initialState } from './state/reducer';
 import { socket } from './socket';
 import { HomeScreen } from './components/HomeScreen';
@@ -9,6 +9,8 @@ import { WaitingView } from './components/WaitingView';
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [pending, setPending] = useState(false);
+
   useEffect(() => {
     function onConnect() {
       dispatch({ type: 'connected' });
@@ -21,9 +23,11 @@ function App() {
     }
     function onMatchState(view: PlayerView) {
       dispatch({ type: 'match/state', view });
+      setPending(false);
     }
     function onMatchError(payload: ErrorPayload) {
       dispatch({ type: 'match/error', error: payload.message });
+      setPending(false);
     }
 
     socket.on('connect', onConnect);
@@ -56,9 +60,12 @@ function App() {
       return (
         <MatchScreen
           view={state.view}
-          onSelectStat={(stat: StatKey) =>
-            socket.emit('match:selectStat', { matchId, token, stat })
-          }
+          error={state.error}
+          onSelectStat={(stat: StatKey) => {
+            setPending(true);
+            socket.emit('match:selectStat', { matchId, token, stat });
+          }}
+          disabled={pending}
         />
       );
     }

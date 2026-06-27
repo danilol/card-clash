@@ -4,11 +4,13 @@ import type { PlayerView, StatKey } from '@card-clash/engine';
 interface CardViewProps {
   view: PlayerView;
   onSelectStat?: (statKey: StatKey) => void;
+  disabled?: boolean;
 }
 
 export function CardView({
   view,
   onSelectStat,
+  disabled = false,
 }: CardViewProps): React.JSX.Element {
   const topCard = view?.yourTopCard;
   const stats = topCard?.stats;
@@ -44,7 +46,7 @@ export function CardView({
           return (
             <button
               key={def.key}
-              disabled={!isYourTurn}
+              disabled={!isYourTurn || disabled}
               onClick={() => onSelectStat?.(def.key)}
               style={{
                 ...styles.statButton,

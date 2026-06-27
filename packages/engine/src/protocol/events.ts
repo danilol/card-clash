@@ -1,4 +1,7 @@
-import type { PlayerView } from '../types.js';
+import type {
+  PlayerView,
+  CommandErrorCode as EngineCommandErrorCode,
+} from '../types.js';
 import type { MatchJoinCommand, SelectStatPayload } from './commands.js';
 
 export interface ClientToServerEvents {
@@ -26,18 +29,17 @@ export type AckPayload =
       error: ErrorPayload;
     };
 
-export type ErrorPayload = {
-  code: CommandErrorCode;
-  message: string;
-};
-
-export type CommandErrorCode =
+export type LobbyErrorCode =
   | 'INVALID_BODY'
   | 'MATCH_NOT_FOUND'
   | 'MATCH_FULL'
   | 'MATCH_STARTED'
   | 'ALREADY_JOINED'
-  | 'NOT_IN_MATCH'
-  | 'NOT_CHOOSER'
-  | 'INVALID_STAT'
-  | 'MATCH_OVER';
+  | 'NOT_IN_MATCH';
+
+export type WireErrorCode = LobbyErrorCode | EngineCommandErrorCode;
+
+export type ErrorPayload = {
+  code: WireErrorCode; // was: CommandErrorCode
+  message: string;
+};

@@ -1,6 +1,6 @@
 # Story 2.4: Play rounds — choose, call out, reveal, repeat
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & D18): Danilo hand-writes ALL code.
      This story is a step-by-step guide + review contract, NOT a spec for a code-generating agent.
@@ -46,52 +46,52 @@ the existing `applyCommand` through the socket and **rendering** the result.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Make the design decisions BEFORE coding (AC: all) ⚠️ BLOCKING — record each in Completion Notes**
-  - [ ] **4a — `match:selectStat` identity = the token.** Payload is `{ matchId, token, stat }`. The server looks the match up, finds the player whose `token` matches, and uses **that player's `playerId`** to build the `SelectStatCommand`. This is where the per-player token (issued in 2.2, unused until now) finally becomes the impersonation guard. If no player in the match has that token → typed error to the sender (e.g. `NOT_IN_MATCH`). Record. (Alternative — map by `socket.id` — rejected: the token is the durable identity per the architecture, and reconnect will reuse it.)
-  - [ ] **4b — Errors are an event to the sender, success is `match:state` to both.** On any failure (zod-bad payload, bad token, or an `applyCommand` rule rejection) emit **`match:error`** to the **sender's socket only**; state is unchanged. On success, save the new state and emit **`match:state`** to **both** sockets (per-player projection, as in 2.3). `match:selectStat` takes **no ack** (unlike `match:join`) — this matches the architecture's error standard ("a typed error *event* to the sender only"). Record.
-  - [ ] **4c — Unify the wire error codes. ⚠️ typing.** The engine's `applyCommand` returns codes `NOT_CHOOSER | INVALID_STAT | MATCH_OVER` (engine `CommandErrorCode` in `types.ts`). The protocol's `ErrorPayload.code` is a *different* union, also called `CommandErrorCode`, in `protocol/events.ts` (`INVALID_BODY | MATCH_NOT_FOUND | MATCH_FULL | MATCH_STARTED | ALREADY_JOINED`). To relay a rule error over `match:error`, the wire union must include the engine's codes (plus an identity code like `NOT_IN_MATCH`). Decide how: **recommended** — rename the protocol union to `WireErrorCode` and define it as the lobby codes **+** the engine's command codes (import the engine's `CommandErrorCode` and compose: `type WireErrorCode = LobbyErrorCode | EngineCommandErrorCode | 'NOT_IN_MATCH'`), so the two same-named types stop colliding and `match:error` can carry any failure with full type-safety. Record the chosen shape.
-  - [ ] **4d — Apply + save the new state.** In the handler, call `applyCommand(entry.state, command)`. On `{ ok: true }`, persist `result.state` via a store updater (add e.g. `updateMatchState(matchId, state)`, or generalize the 2.3 `startMatch`). The engine owns ALL rules (compare, Age low-wins, transfer order, ties→pot, Super Trump, match end) — the server only persists and projects; it must not re-implement any rule. Record.
-  - [ ] **4e — The reveal renders from `view.lastRound`.** Decide a small `RoundResult` (call-out) component or a `MatchScreen` section that shows, from `lastRound`: both players' played cards, the chosen `stat` and each side's value for it, and the winner highlighted (a tie → "PUSH / pot grows"). `lastRound.playedCards` carries BOTH cards (revealed info — safe). Record what it renders.
-  - [ ] **4f — Client lock is UX-only; the server is the gate.** Stats are disabled when `view.chooser !== view.you` (the `CardView` buttons already do this) and an "opponent is choosing…" indicator shows (FR16). But the real enforcement is server-side: `applyCommand` returns `NOT_CHOOSER` for an off-turn command, which becomes a `match:error` to the sender, state unchanged (AC2). Record that the disable is convenience only.
-  - [ ] **4g — How the client shows a `match:error`.** Recommended: a transient `error: string | null` in the reducer set by a new `match/error` action and **cleared on the next `match/state`**. (Or local `MatchScreen` state.) Record.
-  - [ ] **4h — Client test infrastructure (deferred from 2.3 — decide now).** 2.4 is interactive (click → emit) and has a reveal to render. Recommended: set the client vitest `environment: 'jsdom'` + add a render lib (e.g. `@testing-library/react`) so the click-to-emit and reveal rendering get real component tests (and the 2.3-deferred `CardView`/join-from-URL tests can land). Alternative: keep deferring and rely on manual smoke. Record the choice.
+- [x] **Task 1: Make the design decisions BEFORE coding (AC: all) ⚠️ BLOCKING — record each in Completion Notes**
+  - [x] **4a — `match:selectStat` identity = the token.** Payload is `{ matchId, token, stat }`. The server looks the match up, finds the player whose `token` matches, and uses **that player's `playerId`** to build the `SelectStatCommand`. This is where the per-player token (issued in 2.2, unused until now) finally becomes the impersonation guard. If no player in the match has that token → typed error to the sender (e.g. `NOT_IN_MATCH`). Record. (Alternative — map by `socket.id` — rejected: the token is the durable identity per the architecture, and reconnect will reuse it.)
+  - [x] **4b — Errors are an event to the sender, success is `match:state` to both.** On any failure (zod-bad payload, bad token, or an `applyCommand` rule rejection) emit **`match:error`** to the **sender's socket only**; state is unchanged. On success, save the new state and emit **`match:state`** to **both** sockets (per-player projection, as in 2.3). `match:selectStat` takes **no ack** (unlike `match:join`) — this matches the architecture's error standard ("a typed error *event* to the sender only"). Record.
+  - [x] **4c — Unify the wire error codes. ⚠️ typing.** The engine's `applyCommand` returns codes `NOT_CHOOSER | INVALID_STAT | MATCH_OVER` (engine `CommandErrorCode` in `types.ts`). The protocol's `ErrorPayload.code` is a *different* union, also called `CommandErrorCode`, in `protocol/events.ts` (`INVALID_BODY | MATCH_NOT_FOUND | MATCH_FULL | MATCH_STARTED | ALREADY_JOINED`). To relay a rule error over `match:error`, the wire union must include the engine's codes (plus an identity code like `NOT_IN_MATCH`). Decide how: **recommended** — rename the protocol union to `WireErrorCode` and define it as the lobby codes **+** the engine's command codes (import the engine's `CommandErrorCode` and compose: `type WireErrorCode = LobbyErrorCode | EngineCommandErrorCode | 'NOT_IN_MATCH'`), so the two same-named types stop colliding and `match:error` can carry any failure with full type-safety. Record the chosen shape.
+  - [x] **4d — Apply + save the new state.** In the handler, call `applyCommand(entry.state, command)`. On `{ ok: true }`, persist `result.state` via a store updater (add e.g. `updateMatchState(matchId, state)`, or generalize the 2.3 `startMatch`). The engine owns ALL rules (compare, Age low-wins, transfer order, ties→pot, Super Trump, match end) — the server only persists and projects; it must not re-implement any rule. Record.
+  - [x] **4e — The reveal renders from `view.lastRound`.** Decide a small `RoundResult` (call-out) component or a `MatchScreen` section that shows, from `lastRound`: both players' played cards, the chosen `stat` and each side's value for it, and the winner highlighted (a tie → "PUSH / pot grows"). `lastRound.playedCards` carries BOTH cards (revealed info — safe). Record what it renders.
+  - [x] **4f — Client lock is UX-only; the server is the gate.** Stats are disabled when `view.chooser !== view.you` (the `CardView` buttons already do this) and an "opponent is choosing…" indicator shows (FR16). But the real enforcement is server-side: `applyCommand` returns `NOT_CHOOSER` for an off-turn command, which becomes a `match:error` to the sender, state unchanged (AC2). Record that the disable is convenience only.
+  - [x] **4g — How the client shows a `match:error`.** Recommended: a transient `error: string | null` in the reducer set by a new `match/error` action and **cleared on the next `match/state`**. (Or local `MatchScreen` state.) Record.
+  - [x] **4h — Client test infrastructure (deferred from 2.3 — decide now).** 2.4 is interactive (click → emit) and has a reveal to render. Recommended: set the client vitest `environment: 'jsdom'` + add a render lib (e.g. `@testing-library/react`) so the click-to-emit and reveal rendering get real component tests (and the 2.3-deferred `CardView`/join-from-URL tests can land). Alternative: keep deferring and rely on manual smoke. Record the choice.
 
-- [ ] **Task 2: Protocol — the selectStat command + wire error codes (AC: 1, 2)** — `packages/engine/src/protocol/`
+- [x] **Task 2: Protocol — the selectStat command + wire error codes (AC: 1, 2)** — `packages/engine/src/protocol/`
   - [x] `commands.ts`: add `selectStatCommandSchema = z.object({ matchId: z.string(), token: z.string(), stat: <StatKey enum> })`. The `stat` is a zod enum over the 8 keys (`'bounty' | 'age' | 'haki' | 'loyalty' | 'devilFruitMastery' | 'fearFactor' | 'speed' | 'battleIQ'`); keep it in sync with the engine `StatKey`. Export the schema + its inferred type.
   - [x] `events.ts`: add `'match:selectStat': (payload: <SelectStat payload>) => void` to `ClientToServerEvents` (no ack). Apply the 4c error-code decision (rename to `WireErrorCode` / compose with the engine codes); update `ErrorPayload.code`. Re-export from `index.ts`.
   - [x] Keep the engine pure — `protocol/` imports only `zod` + engine types. [Source: architecture.md — engine boundary]
 
-- [ ] **Task 3: Server — the `match:selectStat` handler (AC: 1, 2)** — `packages/server/src/sockets/`
+- [x] **Task 3: Server — the `match:selectStat` handler (AC: 1, 2)** — `packages/server/src/sockets/`
   - [x] In `matchHandlers.ts`, register `socket.on('match:selectStat', …)`: zod-parse the payload (4b boundary rule) → `getMatch` (→ `match:error MATCH_NOT_FOUND` if missing) → find the player by `token` (→ `match:error NOT_IN_MATCH` if none) → build `{ type: 'selectStat', playerId, stat }` → `applyCommand(entry.state, command)`.
   - [x] On `{ ok: false }` → emit `match:error` (engine's `error.code`/`message`) to the **sender only**; do not touch state.
   - [x] On `{ ok: true }` → save `result.state` (4d store updater) → emit `match:state` to **each** player via the per-player projection helper (reuse the 2.3 `buildStartViews` — consider renaming it `buildPlayerViews` since it's no longer start-only).
   - [x] If `result.state.result !== null` the match has ended — for 2.4 just keep emitting `match:state` (the table shows the final position). The dedicated `match:ended` event + `ResultScreen` + store eviction are **story 2.5** — do NOT build them here. [Source: epics.md#Story-2.5]
   - [x] `applyCommand`/`projectFor` are the only engine calls; never re-implement a rule or hand-build a payload. [Source: architecture.md — Enforcement Guidelines]
 
-- [ ] **Task 4: Client — pick a stat, show the reveal, handle errors (AC: 1, 2, 3, 4)** — `packages/client`
-  - [ ] Wire `onSelectStat`: in `App.tsx`, pass `onSelectStat={(stat) => socket.emit('match:selectStat', { matchId, token, stat })}` to `<MatchScreen>` (read `matchId`/`token` from `state.match`). The `CardView` buttons already call `onSelectStat?.(def.key)` and disable off-turn — this just connects them.
-  - [ ] Render the reveal (4e): a `RoundResult`/call-out from `view.lastRound` — both played cards, the chosen stat's two values, winner highlighted; first round (`lastRound === null`) shows nothing. Keep the live surface (FR30): top card, both counts, pot, turn indicator all already render from the `match:state` snapshot — verify they update each round.
-  - [ ] "opponent is choosing…" (FR16): when `view.chooser !== view.you`, show the waiting indicator (the turn banner already differentiates) and keep stats locked.
-  - [ ] `match:error` (4g): add a `socket.on('match:error', …)` listener in `App.tsx` (symmetric `off` cleanup) → dispatch `match/error` → show the message on the MatchScreen; clear it on the next `match/state`.
-  - [ ] Super Trump marker (FR19, AC3) already renders from `view.yourTopCardIsSuperTrump` (holder-only) — verify it shows for the holder and not the opponent, including the round it is played.
+- [x] **Task 4: Client — pick a stat, show the reveal, handle errors (AC: 1, 2, 3, 4)** — `packages/client`
+  - [x] Wire `onSelectStat`: in `App.tsx`, pass `onSelectStat={(stat) => socket.emit('match:selectStat', { matchId, token, stat })}` to `<MatchScreen>` (read `matchId`/`token` from `state.match`). The `CardView` buttons already call `onSelectStat?.(def.key)` and disable off-turn — this just connects them.
+  - [x] Render the reveal (4e): a `RoundResult`/call-out from `view.lastRound` — both played cards, the chosen stat's two values, winner highlighted; first round (`lastRound === null`) shows nothing. Keep the live surface (FR30): top card, both counts, pot, turn indicator all already render from the `match:state` snapshot — verify they update each round.
+  - [x] "opponent is choosing…" (FR16): when `view.chooser !== view.you`, show the waiting indicator (the turn banner already differentiates) and keep stats locked.
+  - [x] `match:error` (4g): add a `socket.on('match:error', …)` listener in `App.tsx` (symmetric `off` cleanup) → dispatch `match/error` → show the message on the MatchScreen; clear it on the next `match/state`.
+  - [x] Super Trump marker (FR19, AC3) already renders from `view.yourTopCardIsSuperTrump` (holder-only) — verify it shows for the holder and not the opponent, including the round it is played.
 
-- [ ] **Task 5: Client reducer — the error field (AC: 2)** — `packages/client/src/state/reducer.ts`
-  - [ ] Add `error: string | null` to state; new `match/error` action sets it; `match/state` clears it (`error: null`). Keep the union exhaustive; immutable updates. Update `reducer.test.ts`.
+- [x] **Task 5: Client reducer — the error field (AC: 2)** — `packages/client/src/state/reducer.ts`
+  - [x] Add `error: string | null` to state; new `match/error` action sets it; `match/state` clears it (`error: null`). Keep the union exhaustive; immutable updates. Update `reducer.test.ts`.
 
-- [ ] **Task 6: Tests — AI-written**
-  - [ ] `commands.ts`: `selectStatCommandSchema` accepts a valid `{ matchId, token, stat }` and rejects an unknown/missing stat and a missing token.
-  - [ ] Server selectStat flow — keep socket-free where possible: if a pure helper is extracted for "resolve player by token + apply + build views / map error", unit-test it (valid stat → per-player views with updated counts; off-turn → `NOT_CHOOSER`; bad token → `NOT_IN_MATCH`). Otherwise note the socket round-trip as manual-verified (the 2.1–2.3 stance).
-  - [ ] Reducer: `match/error` sets the message; `match/state` clears it; existing cases pass; no mutation.
-  - [ ] NFR2 still holds after a round — extend or mirror the `startViews`/projection check on a post-`applyCommand` state (lastRound reveals both *played* cards, which is allowed; buried stacks + trump location still hidden).
-  - [ ] If 4h taken (jsdom): `CardView` click calls `onSelectStat` only when it's your turn; the reveal renders both cards + winner from `lastRound`. Else: manual-verify and note.
-  - [ ] Engine rules (compare/ties/trump/Age/end) are already covered by the 109 engine tests — do NOT retest them here.
+- [x] **Task 6: Tests — AI-written**
+  - [x] `commands.ts`: `selectStatCommandSchema` accepts a valid `{ matchId, token, stat }` and rejects an unknown/missing stat and a missing token.
+  - [x] Server selectStat flow — keep socket-free where possible: if a pure helper is extracted for "resolve player by token + apply + build views / map error", unit-test it (valid stat → per-player views with updated counts; off-turn → `NOT_CHOOSER`; bad token → `NOT_IN_MATCH`). Otherwise note the socket round-trip as manual-verified (the 2.1–2.3 stance).
+  - [x] Reducer: `match/error` sets the message; `match/state` clears it; existing cases pass; no mutation.
+  - [x] NFR2 still holds after a round — extend or mirror the `startViews`/projection check on a post-`applyCommand` state (lastRound reveals both *played* cards, which is allowed; buried stacks + trump location still hidden).
+  - [x] If 4h taken (jsdom): `CardView` click calls `onSelectStat` only when it's your turn; the reveal renders both cards + winner from `lastRound`. Else: manual-verify and note.
+  - [x] Engine rules (compare/ties/trump/Age/end) are already covered by the 109 engine tests — do NOT retest them here.
 
-- [ ] **Task 7: Prove it (AC: all)**
-  - [ ] `npm run dev`, two tabs, full match started (2.3). Play several rounds: on the chooser's tab, click a stat → **both** tabs show the call-out (both cards, the stat's values, winner), counts/pot update, and the turn passes to the winner — within ~1s. (Manual smoke.)
-  - [ ] Force a **tie** (equal values) → both cards go to the pot, pot count grows, same chooser picks again (engine handles it; just confirm the surface reflects it). Play a **Super Trump** round → holder wins; confirm the opponent only learns the trump when it's played.
-  - [ ] On the **non-chooser** tab, confirm stats are locked + "opponent is choosing…"; a forced/duplicate click surfaces a `match:error` to that tab only, with no state change.
-  - [ ] `npm run typecheck` clean; `npm test` green; `npm run format`.
-  - [ ] Commit on `story/2.4`, push, open PR, run `bmad-code-review` per process.
+- [x] **Task 7: Prove it (AC: all)**
+  - [x] `npm run dev`, two tabs, full match started (2.3). Play several rounds: on the chooser's tab, click a stat → **both** tabs show the call-out (both cards, the stat's values, winner), counts/pot update, and the turn passes to the winner — within ~1s. (Manual smoke.)
+  - [x] Force a **tie** (equal values) → both cards go to the pot, pot count grows, same chooser picks again (engine handles it; just confirm the surface reflects it). Play a **Super Trump** round → holder wins; confirm the opponent only learns the trump when it's played.
+  - [x] On the **non-chooser** tab, confirm stats are locked + "opponent is choosing…"; a forced/duplicate click surfaces a `match:error` to that tab only, with no state change.
+  - [x] `npm run typecheck` clean; `npm test` green; `npm run format`.
+  - [x] Commit on `story/2.4`, push, open PR, run `bmad-code-review` per process.
 
 ## Dev Notes
 
@@ -179,14 +179,72 @@ N/A — hand-implemented by Danilo (AI mentor/review mode per working agreement;
 
 ### Completion Notes List
 
-Decisions (fill at implementation):
-- 4a — selectStat identity via token (server resolves playerId):
-- 4b — failures → match:error to sender; success → match:state to both; no ack:
-- 4c — wire error-code unification (WireErrorCode = lobby + engine command codes + NOT_IN_MATCH):
-- 4d — apply + save the new state (store updater):
-- 4e — the reveal component/section from lastRound:
-- 4f — client lock UX-only; server is the authority:
-- 4g — client match:error display (reducer error field, cleared on match/state):
-- 4h — client test infra (jsdom/RTL now vs keep deferring):
+Decisions:
+- 4a — `match:selectStat` payload is `{ matchId, token, stat }`; the server finds the player by `token` and builds the engine `SelectStatCommand` with that player's `playerId`. Token is the impersonation guard (first real use of the 2.2 seam); unknown token → `NOT_IN_MATCH`.
+- 4b — failures (zod-bad / bad token / `applyCommand` rule rejection) → `socket.emit('match:error', …)` to the **sender only**, state unchanged; success → per-player `match:state` to both. No ack on `match:selectStat`.
+- 4c — **composed** the wire union: `WireErrorCode = LobbyErrorCode | EngineCommandErrorCode` (imports the engine's `CommandErrorCode`); `ErrorPayload.code` uses it. Removes the old hand-listed duplicate + the name collision (applied during review).
+- 4d — `applyCommand(entry.state, command)`; on ok, `updateMatchState(matchId, result.state)` (new store updater, status stays `playing`). Engine owns all rules.
+- 4e — reveal rendered in `MatchScreen` from `view.lastRound`: both played cards (`playedCards[you]?.[0]` + the other key), the chosen `stat` label/values, winner-highlighted border; tie → draw branch.
+- 4f — client lock is UX only (`CardView` disables off-turn); the server `applyCommand` `NOT_CHOOSER` is the authority → `match:error` to the sender.
+- 4g — reducer `error: string | null`; `match/error` sets it; `match/state` clears it. (Review patch: it is now also **rendered** in `MatchScreen` and a `pending` lock prevents double-submit.)
+- 4h — **kept deferred** (no jsdom/RTL). The reveal + error banner + pending lock are manually verified. Client DOM test infra is logged as the next infra task (see `deferred-work.md`); overdue before 2.5.
+
+Setup notes / gotchas resolved during the build:
+- **Two `SelectStat` types are distinct and both needed:** the **wire** `SelectStatPayload` (`{ matchId, token, stat }`, in `commands.ts`) vs the **engine** `SelectStatCommand` (`{ type, playerId, stat }`, in `types.ts`). Briefly conflated them (removed `playerId` from the engine type, which broke `applyCommand`); restored. The server bridges: token → playerId → engine command.
+- **Import the engine via `@card-clash/engine`, never a deep `../../../engine/src/...` path** — a deep relative import dragged engine source under the server's `rootDir` (TS6059). The package barrel is the only correct path.
+- **`match:state` (wire event) vs `match/state` (reducer action)** — distinct namespaces; don't cross them. Same for emit-direction: `ServerToClientEvents` = server emits / client listens.
+- Review fixes: `match:error` is now shown to the player (was stored-but-invisible); a `pending` flag (cleared on both `match:state` and `match:error`) blocks accidental double-submit.
+
+Tests: 143 total green. New: `commands.test.ts` (`selectStatCommandSchema` — valid, bad/missing stat, missing token, all 8 keys); `startViews.test.ts` post-round NFR2 (round recorded, views stay pure projections, opponent's next card hidden); reducer `match/error` set + cleared-on-`match/state`. Engine round rules already covered by the 109 engine tests.
+
+Deferred (manual-verified): client DOM tests (jsdom/RTL — `MatchScreen` reveal/error, `CardView` click-to-emit, the `pending` lock) and the live socket round-trip — consistent with the 2.1–2.3 stance.
 
 ### File List
+
+New:
+- `packages/engine/src/protocol/commands.test.ts` — `selectStatCommandSchema` tests.
+
+Changed (engine):
+- `protocol/commands.ts` — `selectStatCommandSchema` (`{ matchId, token, stat: enum }`) + `SelectStatPayload`.
+- `protocol/events.ts` — `match:selectStat` in `ClientToServerEvents`; `WireErrorCode` composed from lobby + engine codes; `ErrorPayload.code` uses it.
+- `index.ts` — export `selectStatCommandSchema`.
+- `types.ts` — `SelectStatCommand` field order (behaviorally inert).
+
+Changed (server):
+- `sockets/matchHandlers.ts` — `match:selectStat` handler (parse → token→player → `applyCommand` → `match:error` to sender / `updateMatchState` + per-player `match:state`).
+- `store/matchStore.ts` — `updateMatchState(matchId, state)`.
+- `sockets/startViews.test.ts` — post-round NFR2 coverage.
+
+Changed (client):
+- `App.tsx` — `onSelectStat` emit wiring; `match:error` listener → `match/error`; `error` + `pending` props to `MatchScreen`; `pending` cleared on `match:state`/`match:error`.
+- `components/MatchScreen.tsx` — the `lastRound` reveal (call-out); renders `error`; threads `disabled` to `CardView`; typed `getStatLabel`.
+- `components/CardView.tsx` — `onSelectStat: (stat: StatKey)`; `disabled={!isYourTurn || disabled}`.
+- `state/reducer.ts` — `error` field + `match/error` action; `match/state` clears `error`.
+- `state/reducer.test.ts` — `match/error` set + cleared-on-`match/state`.
+
+## Review Findings
+
+_Code review 2026-06-27 (3 parallel layers) on branch `story/2.4` vs `main`. **All 4 ACs functionally pass; the round loop, reveal, token-identity, projection-only door, and zod-at-boundary are all correct.** typecheck clean; 143 tests green. Two worthwhile UX/correctness patches surfaced in 2.4's own deliverable (error feedback + double-submit), plus the known match-end UI gap which is by-scope story 2.5._
+
+### Patches — recommended
+
+- [x] [Review][Patch][Med] **(Fixed 2026-06-27)** **`match:error` is stored in state but never shown to the player.** The reducer holds `error` (and a test asserts it), but nothing renders `state.error` — `MatchScreen` never receives it. So a rejected command (`NOT_CHOOSER`, `MATCH_OVER`, …) reaches the client and vanishes silently — AC2's "returns a typed error **to me**" has no visible half. Fix: pass `state.error` into `MatchScreen` and render it (it already clears on the next `match/state`). [`App.tsx`, `MatchScreen.tsx`]
+- [x] [Review][Patch][Med] **(Fixed 2026-06-27)** **Double-submit plays an unintended extra round.** After you win/draw you stay chooser, so the stat buttons remain enabled; a fast second click emits another `match:selectStat` before the new `match:state` lands, resolving a round you didn't mean to play. Fix: a client-side "pending" lock — disable the stat buttons once a `selectStat` is emitted until the next `match:state` arrives. [`App.tsx` / `MatchScreen` / `CardView`]
+
+### Patches — quality (your call)
+
+- [x] [Review][Patch][Low] **(Fixed 2026-06-27)** **4c done by manual duplication, not composition.** The protocol union kept the name `CommandErrorCode` and hand-copied the engine's codes (`NOT_CHOOSER | INVALID_STAT | MATCH_OVER`) — type-safe today, but the two same-named unions still coexist and won't auto-track if the engine adds a code. Compose it from the engine's type (e.g. `type WireErrorCode = LobbyErrorCode | EngineCommandErrorCode | 'NOT_IN_MATCH'`) or record it as a conscious deviation. [`protocol/events.ts`]
+- [x] [Review][Patch][Low] **(Fixed 2026-06-27)** **`getStatLabel(definitions: readonly any[])` + `as keyof` casts** in the reveal lose type-safety. Type it `readonly StatDefinition[]` and drop the casts (a renamed field would otherwise silently fall through to the `|| key` fallback). [`MatchScreen.tsx`]
+
+### Deferred
+
+- [x] [Review][Defer] **Match end has no UI and the store isn't evicted.** When `applyCommand` returns a state with `result` set, the client keeps rendering the playable table (board "freezes") and the server leaves `status: 'playing'`. The ResultScreen, `match:ended` event, status→`ended`, and eviction are **story 2.5**. (Auditor confirmed 2.4's scope is clean — it correctly doesn't build them.)
+
+### Dismissed
+
+- **Token presence ≠ socket binding** — by design: the per-player token IS the credential carried on every in-match event (architecture), and binding to `socket.id` would break the planned reconnect. Stealing a secret token is out of the v1 threat model (private links, 2 users, no PII). Accepted.
+- **`match:selectStat` has no ack (a lost emit is uncorrelated)** — by design (decision 4b: errors are a `match:error` event, not an ack).
+- **`updateMatchState` throw is uncaught in the handler** — not reachable: `getMatch` is checked immediately above and Node runs the handler synchronously.
+- **`lastRound` ships the played card's full stats** — by design: those cards are *revealed* this round (public); buried stacks + un-played trump stay hidden via `projectFor` (verified by the projection + post-round NFR2 tests).
+- **`SelectStatCommand` field reorder** in `types.ts` — behaviorally inert churn.
+- **Heavy reveal styling (~70 lines)** — accepted; functional. (Counter-metric reminder: these steps lean toward lots of CSS — fine, just noting the time-to-playable guard.)
