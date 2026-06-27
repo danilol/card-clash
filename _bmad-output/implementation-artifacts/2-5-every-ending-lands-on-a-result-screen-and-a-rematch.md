@@ -1,6 +1,6 @@
 # Story 2.5: Every ending lands on a result screen — and a rematch
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (binding, per PRD addendum & D18): Danilo hand-writes ALL code.
      This story is a step-by-step guide + review contract, NOT a spec for a code-generating agent.
@@ -159,6 +159,38 @@ cleaned out of the server's memory.
 - [Source: implementation-artifacts/1-7-match-end-every-way-a-game-can-finish.md] — the end rules this story renders (already tested)
 - [Source: implementation-artifacts/2-4-…-play-rounds.md] — the selectStat handler hook, the reducer/screen patterns, the pending-lock model, the jsdom deferral
 - [Source: addendum.md#Working-agreement; .decision-log.md#D18] — hand-write code; AI mentors
+
+## Review Findings
+
+_Code review 2026-06-28 (3 parallel layers) on branch `story/2.5` vs `main`. AC1 result-screen ✅; AC2 rematch ✅ (matchId reused — documented deviation). typecheck clean, 148 tests. But the review found **one real correctness bug** (final state not persisted on end), **one product/scope decision** (card artwork contradicts FR29 and is out of 2.5 scope), and the **AC1 eviction clause is unmet** (no `deleteMatch`)._
+
+### Decision needed
+
+- [x] [Review][Decision] **(Resolved 2026-06-28 — KEEP + amend FR29.)** FR29 updated in `prd.md` + `epics.md` to allow card artwork with a placeholder fallback; artwork kept (images stay in git as-is; IP revisit-before-public note carried). **Card artwork contradicts FR29 and is out of 2.5 scope.** `CardView` now renders `<img src="/images/cards/{id}.png">` (with a `.jpg` fallback + emoji placeholder) and **32 character images** were committed (one ~520 KB). FR29 says a card is "a simple placeholder: character name plus 8 labeled stat values — **no artwork**," and 2.5's scope is the result screen + rematch. This isn't a bug — it's a deliberate feature against a written requirement. **Decide:** (a) keep it and amend FR29/the PRD to allow artwork (per the architecture's "if reality disproves a decision, amend the doc first") — and move the artwork to its own story/commit; or (b) revert to the placeholder for 2.5. Side notes: the images are copyrighted One Piece art (the PRD's own OQ1 deferred IP "before public"), and a 520 KB PNG in git is repo-bloat worth `.gitignore`/Git-LFS thought.
+
+### Patches — recommended
+
+- [x] [Review][Patch][Med] **The match end doesn't persist the final state → a late `selectStat` resolves another round.** The end-branch emits `match:ended` and `return`s **without** `updateMatchState`, so the store keeps the *pre-final* state (`result === null`). A stray/queued `match:selectStat` after the end (double-click before the screen switches, re-delivery) passes the `!entry.state` guard, `applyCommand` runs on the stale state (no `MATCH_OVER` because the stored state isn't terminal), and resolves an extra round — yanking both clients back into a "finished" match. Fix: in the end-branch, `updateMatchState(parsed.data.matchId, result.state)` (and set `status: 'ended'`) **before** emitting `match:ended`; then a late command hits the terminal state → `MATCH_OVER` → `match:error`. [`sockets/matchHandlers.ts`] (all 3 layers)
+
+### Patches — quality (your call)
+
+- [x] [Review][Patch][Low] **Rematch error leaves the button stuck.** `match/error` doesn't clear `rematchPending`, so if the rematch emit errors the button stays "Waiting for opponent…". Clear `rematchPending` in the `match/error` reducer case. [`state/reducer.ts`]
+- [x] [Review][Patch][Low] **Debug JSON panel re-introduced** ("Inspect JSON Engine State" → `JSON.stringify(view)`) in `MatchScreen` — this is a regression of the 2.4 P4 fix. Remove it, or dev-gate it (`import.meta.env.DEV`). [`MatchScreen.tsx`]
+- [x] [Review][Patch][Low] **`match:ended` is wrongly in `ClientToServerEvents`** (`() => void`) — it's a server→client event only. Remove that line (leave it in `ServerToClientEvents`). [`protocol/events.ts`]
+- [x] [Review][Patch][Low] **Rematch handler uses raw `payload.token`** instead of the validated `parsed.data.token`; and (after the Med fix) guard that the match actually ended (`entry.state.result !== null` / status `ended`) before accepting a rematch. [`sockets/matchHandlers.ts`]
+- [x] [Review][Patch][Low] **Dead/fragile `entry.state = null`** just before `startMatch` (which overwrites it) — and if `createMatch` ever threw, the match would be left nulled. Remove the line (build then swap). [`sockets/matchHandlers.ts`]
+- [x] [Review][Patch][Low] **`case 'result'` declares `const` without a block** (unlike `case 'match'`) — `no-case-declarations` hygiene; wrap the body in `{ }`. [`App.tsx`]
+- [x] [Review][Patch][Low] **(optional)** ResultView shows the raw reason (`allCards`/`roundCap`); map to the human strings the spec suggested ("All cards captured" / "Round cap reached"). [`ResultView.tsx`]
+
+### Deferred
+
+- [x] [Review][Defer] **AC1 eviction unmet — no `deleteMatch`.** Finished matches stay in the in-memory Map; an abandoned (un-rematched) match leaks. This is in tension with Option A (rematch reuses the entry), so eviction needs a different trigger — disconnect cleanup (**story 2.6**) + an abandoned-match TTL (already deferred). The literal AC1 "evict after ended" lands with 2.6.
+- [x] [Review][Defer] **One-sided rematch has no exit.** If a player accepts and the opponent never does, the accepter is stuck on "Waiting for opponent…" forever (no decline/timeout). The "opponent left" half lands with disconnect/forfeit (2.6); a rematch-decline/timeout is a small follow-up.
+
+### Dismissed
+
+- `buildStartViews` reused for `match:ended` — cosmetic naming (`projectFor` handles a terminal state fine); rename to `buildPlayerViews` someday.
+- `CardView` `onError` stale-closure — minor, and moot if the artwork is reverted (see the decision above).
 
 ## Dev Agent Record
 

@@ -61,7 +61,7 @@ function App() {
       return <WaitingView view={state.match} />;
     case 'join':
       return <JoinScreen dispatch={dispatch} />;
-    case 'result':
+    case 'result': {
       if (!state.view || !state.match) return null;
       const { matchId, token } = state.match;
       return (
@@ -77,6 +77,7 @@ function App() {
           rematchPending={state.rematchPending}
         />
       );
+    }
     case 'match': {
       if (!state.view || !state.match) return null;
       const { matchId, token } = state.match;

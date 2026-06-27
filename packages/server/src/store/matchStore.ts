@@ -69,6 +69,16 @@ export function updateMatchState(
   return entry;
 }
 
+export function endMatch(matchId: string, state: MatchState): MatchEntry {
+  const entry = matches.get(matchId);
+  if (!entry) {
+    throw new Error('Match not found');
+  }
+  entry.state = state;
+  entry.status = 'ended';
+  return entry;
+}
+
 export function acceptRematch(matchId: string, playerId: string): MatchEntry {
   const entry = matches.get(matchId);
   if (!entry) {

@@ -14,7 +14,6 @@ export interface ClientToServerEvents {
     ack: (response: AckPayload) => void,
   ) => void;
   'match:selectStat': (payload: SelectStatPayload) => void;
-  'match:ended': () => void;
   'match:rematch': (payload: RematchCommand) => void;
 }
 

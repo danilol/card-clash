@@ -7,6 +7,7 @@ import type {
 import {
   acceptRematch,
   addPlayer,
+  endMatch,
   getMatch,
   startMatch,
   updateMatchState,
@@ -153,6 +154,10 @@ export function registerMatchHandlers(
       }
 
       if (result.state.result) {
+        // Persist the FINAL state (+ status 'ended') BEFORE emitting, so a
+        // late/stray selectStat hits the terminal state → applyCommand returns
+        // MATCH_OVER instead of resolving another round on a stale state.
+        endMatch(parsed.data.matchId, result.state);
         for (const { socketId, view } of buildStartViews(
           result.state,
           entry.players,
@@ -190,7 +195,18 @@ export function registerMatchHandlers(
         });
         return;
       }
-      const player = entry.players.find((p) => p.token === payload.token);
+
+      if (entry.status !== 'ended') {
+        socket.emit('match:error', {
+          code: 'MATCH_STARTED',
+          message: 'Match is still in progress',
+        });
+        return;
+      }
+
+      const player = entry.players.find(
+        (p) => p.token === parsed.data.token,
+      );
 
       if (!player) {
         socket.emit('match:error', {
@@ -205,7 +221,6 @@ export function registerMatchHandlers(
       }
 
       if (entry.rematchAccepted.length === 2) {
-        entry.state = null;
         entry.rematchAccepted = [];
 
         const matchState = createMatch(

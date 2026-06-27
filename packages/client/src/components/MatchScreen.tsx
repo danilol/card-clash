@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CardView } from './CardView';
 import type { PlayerView, StatKey, StatDefinition } from '@card-clash/engine';
 
@@ -15,7 +15,6 @@ export function MatchScreen({
   onSelectStat,
   disabled = false,
 }: MatchScreenProps): React.JSX.Element {
-  const [showDebug, setShowDebug] = useState(false);
 
   const getStatLabel = (
     key: string,
@@ -171,31 +170,6 @@ export function MatchScreen({
             />
           </div>
         </main>
-
-        {/* 5. COLLAPSIBLE DEBUG GER FOOTER */}
-        <footer style={styles.footerContainer}>
-          <button
-            style={styles.debugToggle}
-            onClick={() => setShowDebug(!showDebug)}
-          >
-            {showDebug
-              ? '🙈 Hide JSON Payload Data'
-              : '⚙️ Inspect JSON Engine State'}
-          </button>
-          {showDebug && (
-            <div style={styles.debugPayload}>
-              <pre
-                style={{
-                  margin: 0,
-                  fontSize: '0.85rem',
-                  fontFamily: 'monospace',
-                }}
-              >
-                {JSON.stringify(view, null, 2)}
-              </pre>
-            </div>
-          )}
-        </footer>
       </div>
     </>
   );
@@ -368,34 +342,4 @@ const styles = {
     paddingBottom: '40px',
   },
   cardWrapper: { transform: 'scale(1.05)', transition: 'transform 0.3s ease' },
-  footerContainer: {
-    marginTop: 'auto',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    gap: '10px',
-  },
-  debugToggle: {
-    backgroundColor: '#1c2331',
-    color: '#a4b0be',
-    border: '1px solid #2f3542',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    transition: 'all 0.2s',
-  },
-  debugPayload: {
-    width: '100%',
-    maxWidth: '560px',
-    maxHeight: '200px',
-    overflowY: 'auto' as const,
-    backgroundColor: '#090a0f',
-    border: '1px solid #1c2331',
-    borderRadius: '8px',
-    padding: '15px',
-    color: '#7bed9f',
-    boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.5)',
-    textAlign: 'left' as const,
-  },
 };

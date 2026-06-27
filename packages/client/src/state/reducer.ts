@@ -87,6 +87,7 @@ export function reducer(state: State, action: Action): State {
       return {
         ...state,
         error: action.error,
+        rematchPending: false,
       };
     case 'match/ended':
       return {

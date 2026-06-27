@@ -47,7 +47,7 @@ FR25b: In every end state, any cards still in the pot go to the match winner; th
 FR26: A result screen shows winner, end reason (all cards / forfeit / round cap), rounds played, and offers a rematch with the same opponent.
 FR27: Completed matches are persisted to a database: both nicknames, winner, end reason, rounds played, timestamp.
 FR28: A minimal "recent matches" view exists (renders in HomeScreen via GET /api/matches/recent).
-FR29: A card renders as a simple placeholder: character name plus 8 labeled stat values; no artwork.
+FR29: A card renders the character name plus 8 labeled stat values; character artwork is shown when available, with a placeholder fallback. (Revised 2026-06-28, story 2.5 — "no artwork" relaxed to allow card images; see PRD FR29.)
 FR30: The UI surfaces at minimum: own top card, both stack counts, pot count, whose turn it is, the round comparison result, and the Super Trump marker (per FR19).
 
 ### NonFunctional Requirements
