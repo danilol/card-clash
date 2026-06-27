@@ -1,9 +1,9 @@
 import React from 'react';
-import type { PlayerView } from '@card-clash/engine';
+import type { PlayerView, StatKey } from '@card-clash/engine';
 
 interface CardViewProps {
   view: PlayerView;
-  onSelectStat?: (statKey: string) => void;
+  onSelectStat?: (statKey: StatKey) => void;
 }
 
 export function CardView({

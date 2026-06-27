@@ -15,6 +15,7 @@ export type State = {
   screen: Screen;
   match: Match;
   view: PlayerView | null;
+  error: string | null;
 };
 
 export type Action =
@@ -31,6 +32,10 @@ export type Action =
   | {
       type: 'match/state';
       view: PlayerView;
+    }
+  | {
+      type: 'match/error';
+      error: string;
     };
 
 export const initialState: State = {
@@ -38,6 +43,7 @@ export const initialState: State = {
   screen: initialScreen(),
   match: null,
   view: null,
+  error: null,
 };
 
 export function reducer(state: State, action: Action): State {
@@ -65,6 +71,12 @@ export function reducer(state: State, action: Action): State {
         ...state,
         screen: 'match',
         view: action.view,
+        error: null,
+      };
+    case 'match/error':
+      return {
+        ...state,
+        error: action.error,
       };
   }
 }

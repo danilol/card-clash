@@ -60,6 +60,29 @@ describe('app reducer', () => {
     expect(next.view).toBe(view);
   });
 
+  it('match/error stores the message; the next match/state clears it', () => {
+    const withError = reducer(initialState, {
+      type: 'match/error',
+      error: 'Not your turn',
+    });
+    expect(withError.error).toBe('Not your turn');
+
+    const view = {
+      you: 'p-1',
+      yourTopCard: null,
+      yourStackCount: 16,
+      opponentStackCount: 16,
+      potCount: 0,
+      chooser: 'p-1',
+      yourTopCardIsSuperTrump: false,
+      statDefinitions: [],
+      lastRound: null,
+      result: null,
+    } as unknown as PlayerView;
+    const afterState = reducer(withError, { type: 'match/state', view });
+    expect(afterState.error).toBeNull();
+  });
+
   it('a later connected/disconnected does not knock you off the waiting screen', () => {
     const joined = reducer(initialState, {
       type: 'match/joined',

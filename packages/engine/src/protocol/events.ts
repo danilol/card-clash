@@ -1,11 +1,12 @@
 import type { PlayerView } from '../types.js';
-import type { MatchJoinCommand } from './commands.js';
+import type { MatchJoinCommand, SelectStatPayload } from './commands.js';
 
 export interface ClientToServerEvents {
   'match:join': (
     payload: MatchJoinCommand,
     ack: (response: AckPayload) => void,
   ) => void;
+  'match:selectStat': (payload: SelectStatPayload) => void;
 }
 
 export interface ServerToClientEvents {
@@ -35,4 +36,8 @@ export type CommandErrorCode =
   | 'MATCH_NOT_FOUND'
   | 'MATCH_FULL'
   | 'MATCH_STARTED'
-  | 'ALREADY_JOINED';
+  | 'ALREADY_JOINED'
+  | 'NOT_IN_MATCH'
+  | 'NOT_CHOOSER'
+  | 'INVALID_STAT'
+  | 'MATCH_OVER';

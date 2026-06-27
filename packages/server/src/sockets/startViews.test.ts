@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createMatch,
+  applyCommand,
   onePieceDeck,
   mulberry32,
   projectFor,
@@ -57,5 +58,43 @@ describe('buildStartViews', () => {
     );
     expect(json).not.toContain('secret-1');
     expect(json).not.toContain('secret-2');
+  });
+
+  // NFR2 still holds AFTER a round is played: the reveal exposes the cards that
+  // were PLAYED (allowed), but the per-player views are still pure projections —
+  // no raw state, and the opponent's next (hidden) top card never leaks.
+  describe('after a round', () => {
+    const result = applyCommand(state, {
+      type: 'selectStat',
+      playerId: state.chooser,
+      stat: 'haki',
+    });
+    if (!result.ok) throw new Error('test setup: selectStat should be legal');
+    const next = result.state;
+
+    it('a round was recorded (lastRound populated)', () => {
+      for (const { view } of buildStartViews(next, players)) {
+        expect(view.lastRound).not.toBeNull();
+      }
+    });
+
+    it('views remain pure projections (only door) with no raw state fields', () => {
+      for (const { view } of buildStartViews(next, players)) {
+        expect(view).toEqual(projectFor(next, view.you));
+        expect(view).not.toHaveProperty('playerStacks');
+        expect(view).not.toHaveProperty('pot');
+        expect(view).not.toHaveProperty('superTrumpCardId');
+      }
+    });
+
+    it('the opponent’s next (hidden) top card still does not leak', () => {
+      for (const { view } of buildStartViews(next, players)) {
+        const opponent = next.players.find((p) => p !== view.you)!;
+        const opponentTop = next.playerStacks[opponent][0];
+        if (opponentTop) {
+          expect(JSON.stringify(view)).not.toContain(opponentTop.id);
+        }
+      }
+    });
   });
 });

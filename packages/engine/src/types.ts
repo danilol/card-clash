@@ -47,8 +47,8 @@ export type MatchState = {
 
 export type SelectStatCommand = {
   type: 'selectStat';
-  playerId: PlayerId;
   stat: StatKey;
+  playerId: PlayerId;
 };
 
 export type Command = SelectStatCommand;

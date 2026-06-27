@@ -3,12 +3,19 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from '@card-clash/engine';
-import { addPlayer, getMatch, startMatch } from '../store/matchStore.js';
 import {
+  addPlayer,
+  getMatch,
+  startMatch,
+  updateMatchState,
+} from '../store/matchStore.js';
+import {
+  applyCommand,
   createMatch,
   defaultRng,
   matchJoinCommandSchema,
   onePieceDeck,
+  selectStatCommandSchema,
 } from '@card-clash/engine';
 import { buildStartViews } from './startViews.js';
 
@@ -97,6 +104,56 @@ export function registerMatchHandlers(
             io.to(socketId).emit('match:state', view);
           }
         }
+      }
+    });
+
+    socket.on('match:selectStat', (payload) => {
+      const parsed = selectStatCommandSchema.safeParse(payload);
+      if (!parsed.success) {
+        socket.emit('match:error', {
+          code: 'INVALID_BODY',
+          message: 'Invalid selectStat payload',
+        });
+        return;
+      }
+
+      const entry = getMatch(parsed.data.matchId);
+      if (!entry || !entry.state) {
+        socket.emit('match:error', {
+          code: 'MATCH_NOT_FOUND',
+          message: 'Match not found',
+        });
+        return;
+      }
+
+      const player = entry.players.find((p) => p.token === parsed.data.token);
+      if (!player) {
+        socket.emit('match:error', {
+          code: 'NOT_IN_MATCH' as const,
+          message: 'You are not in this match',
+        });
+        return;
+      }
+
+      const command = {
+        type: 'selectStat',
+        playerId: player.playerId,
+        stat: parsed.data.stat,
+      } as const;
+
+      const result = applyCommand(entry.state, command);
+
+      if (!result.ok) {
+        socket.emit('match:error', result.error);
+        return;
+      }
+
+      updateMatchState(parsed.data.matchId, result.state);
+      for (const { socketId, view } of buildStartViews(
+        result.state,
+        entry.players,
+      )) {
+        io.to(socketId).emit('match:state', view);
       }
     });
   });
