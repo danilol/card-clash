@@ -6,6 +6,7 @@ export type MatchEntry = {
   players: Player[];
   createdAt: number;
   state: MatchState | null;
+  rematchAccepted: string[];
 };
 
 export type Player = {
@@ -27,6 +28,7 @@ export function createMatchEntry(): MatchEntry {
     players: [],
     createdAt: Date.now(),
     state: null,
+    rematchAccepted: [],
   };
   matches.set(matchId, entry);
   return entry;
@@ -64,5 +66,24 @@ export function updateMatchState(
     throw new Error('Match not found');
   }
   entry.state = state;
+  return entry;
+}
+
+export function endMatch(matchId: string, state: MatchState): MatchEntry {
+  const entry = matches.get(matchId);
+  if (!entry) {
+    throw new Error('Match not found');
+  }
+  entry.state = state;
+  entry.status = 'ended';
+  return entry;
+}
+
+export function acceptRematch(matchId: string, playerId: string): MatchEntry {
+  const entry = matches.get(matchId);
+  if (!entry) {
+    throw new Error('Match not found');
+  }
+  entry.rematchAccepted.push(playerId);
   return entry;
 }

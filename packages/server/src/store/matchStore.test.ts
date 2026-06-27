@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createMatchEntry, getMatch, addPlayer } from './matchStore.js';
+import { createMatch, onePieceDeck, mulberry32 } from '@card-clash/engine';
+import {
+  createMatchEntry,
+  getMatch,
+  addPlayer,
+  endMatch,
+} from './matchStore.js';
 
 describe('matchStore', () => {
   it('createMatchEntry makes a waiting entry with an id, no players, and a timestamp', () => {
@@ -45,5 +51,18 @@ describe('matchStore', () => {
         socketId: 's',
       }),
     ).toThrow();
+  });
+
+  it('endMatch persists the final state and flips status to ended', () => {
+    const entry = createMatchEntry();
+    const finalState = createMatch(
+      onePieceDeck,
+      ['p-1', 'p-2'],
+      mulberry32(7),
+    );
+    const ended = endMatch(entry.matchId, finalState);
+    expect(ended.status).toBe('ended');
+    expect(ended.state).toBe(finalState);
+    expect(getMatch(entry.matchId)?.status).toBe('ended');
   });
 });

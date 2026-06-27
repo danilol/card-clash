@@ -83,6 +83,48 @@ describe('app reducer', () => {
     expect(afterState.error).toBeNull();
   });
 
+  it('match/ended → moves to the result screen and stores the final view', () => {
+    const view = {
+      you: 'p-1',
+      yourTopCard: null,
+      yourStackCount: 32,
+      opponentStackCount: 0,
+      potCount: 0,
+      chooser: 'p-1',
+      yourTopCardIsSuperTrump: false,
+      statDefinitions: [],
+      lastRound: null,
+      result: { winner: 'p-1', reason: 'allCards' },
+      roundsPlayed: 12,
+    } as unknown as PlayerView;
+
+    const next = reducer(initialState, { type: 'match/ended', view });
+    expect(next.screen).toBe('result');
+    expect(next.view).toBe(view);
+    expect(next.rematchPending).toBe(false);
+  });
+
+  it('match/rematchPending sets the flag; the next match/state clears it', () => {
+    const pending = reducer(initialState, { type: 'match/rematchPending' });
+    expect(pending.rematchPending).toBe(true);
+
+    const view = {
+      you: 'p-1',
+      yourTopCard: null,
+      yourStackCount: 16,
+      opponentStackCount: 16,
+      potCount: 0,
+      chooser: 'p-1',
+      yourTopCardIsSuperTrump: false,
+      statDefinitions: [],
+      lastRound: null,
+      result: null,
+      roundsPlayed: 0,
+    } as unknown as PlayerView;
+    const afterState = reducer(pending, { type: 'match/state', view });
+    expect(afterState.rematchPending).toBe(false);
+  });
+
   it('a later connected/disconnected does not knock you off the waiting screen', () => {
     const joined = reducer(initialState, {
       type: 'match/joined',

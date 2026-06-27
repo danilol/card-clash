@@ -93,7 +93,7 @@ There is one user type: a casual player who receives or creates a match link. No
 
 ### 5.7 Presentation (v1 placeholder UI)
 
-- **FR29.** A card renders as a simple placeholder: character name plus its 8 labeled stat values. No artwork.
+- **FR29.** A card renders the character name plus its 8 labeled stat values. Character artwork is shown when an image is available, with a name/placeholder fallback when it is not. _(Revised 2026-06-28, story 2.5: the original "no artwork" placeholder rule was relaxed to allow card images — Danilo's product call during the 2.5 review. IP note: character art is copyrighted; OQ1/Q5's "revisit before publishing publicly" still applies.)_
 - **FR30.** The UI surfaces, at minimum: own top card, both stack counts, pot count, whose turn it is, the round comparison result, and the Super Trump marker (per FR19).
 
 ## 6. Non-Functional Requirements

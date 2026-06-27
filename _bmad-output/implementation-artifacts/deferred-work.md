@@ -53,3 +53,8 @@
 ## Deferred from: code review of 2-4 (2026-06-27)
 
 - Match-end experience (story 2.5): when `applyCommand` returns a state with `result` set, the client still renders the playable table (board "freezes") and the server leaves the entry `status: 'playing'`. 2.5 adds the `ResultScreen`, the `match:ended` event, status→`ended`, and store eviction. Until then the end is invisible and further `selectStat` clicks just get `MATCH_OVER`.
+
+## Deferred from: code review of 2-5 (2026-06-28)
+
+- AC1 eviction (story 2.6 / abandoned-TTL): no `deleteMatch` exists; finished matches stay in the in-memory Map. In tension with the Option-A rematch (which reuses the entry), so eviction needs a different trigger — disconnect cleanup (2.6) and/or an abandoned-match TTL. The literal AC1 "evict after the ended event fires" is unmet until then.
+- One-sided rematch has no exit: if one player accepts and the opponent never does, the accepter is stuck on "Waiting for opponent…" with no decline/timeout. The "opponent left" case lands with disconnect/forfeit (2.6); add a rematch decline/timeout as a small follow-up.

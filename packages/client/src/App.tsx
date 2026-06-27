@@ -6,6 +6,7 @@ import { JoinScreen } from './components/JoinScreen';
 import type { ErrorPayload, PlayerView, StatKey } from '@card-clash/engine';
 import { MatchScreen } from './components/MatchScreen';
 import { WaitingView } from './components/WaitingView';
+import { ResultView } from './components/ResultView';
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -25,6 +26,10 @@ function App() {
       dispatch({ type: 'match/state', view });
       setPending(false);
     }
+    function onMatchEnded(view: PlayerView) {
+      dispatch({ type: 'match/ended', view });
+      setPending(false);
+    }
     function onMatchError(payload: ErrorPayload) {
       dispatch({ type: 'match/error', error: payload.message });
       setPending(false);
@@ -35,6 +40,7 @@ function App() {
     socket.on('connect_error', onConnectError);
     socket.on('match:state', onMatchState);
     socket.on('match:error', onMatchError);
+    socket.on('match:ended', onMatchEnded);
 
     if (socket.connected) dispatch({ type: 'connected' });
 
@@ -44,6 +50,7 @@ function App() {
       socket.off('connect_error', onConnectError);
       socket.off('match:state', onMatchState);
       socket.off('match:error', onMatchError);
+      socket.off('match:ended', onMatchEnded);
     };
   }, []);
 
@@ -54,6 +61,23 @@ function App() {
       return <WaitingView view={state.match} />;
     case 'join':
       return <JoinScreen dispatch={dispatch} />;
+    case 'result': {
+      if (!state.view || !state.match) return null;
+      const { matchId, token } = state.match;
+      return (
+        <ResultView
+          view={state.view}
+          onRematch={() => {
+            socket.emit('match:rematch', {
+              matchId,
+              token,
+            });
+            dispatch({ type: 'match/rematchPending' });
+          }}
+          rematchPending={state.rematchPending}
+        />
+      );
+    }
     case 'match': {
       if (!state.view || !state.match) return null;
       const { matchId, token } = state.match;

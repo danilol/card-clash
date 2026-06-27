@@ -33,4 +33,5 @@ export {
   nicknameSchema,
   createMatchSchema,
   selectStatCommandSchema,
+  rematchCommandSchema,
 } from './protocol/commands.js';

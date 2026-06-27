@@ -24,3 +24,10 @@ export const matchJoinCommandSchema = z.object({
 });
 
 export type MatchJoinCommand = z.infer<typeof matchJoinCommandSchema>;
+
+export const rematchCommandSchema = z.object({
+  matchId: z.string(),
+  token: z.string(),
+});
+
+export type RematchCommand = z.infer<typeof rematchCommandSchema>;
