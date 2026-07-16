@@ -12,7 +12,7 @@ inputDocuments:
 
 This document provides the complete epic and story breakdown for card-clash, decomposing the requirements from the PRD, UX Design if it exists, and Architecture requirements into implementable stories.
 
-**Process note (binding):** Danilo hand-writes all implementation code. Stories in this document are tutorial-sized steps for a human developer with AI guidance/review — not specs for a code-generating agent.
+**Process note (revised 2026-07-16, PRD D23):** AI implements stories via BMAD; Danilo requests features and approves specs. (Original binding note — Danilo hand-writes all code, stories as tutorial steps — applied through story 2.5.)
 
 ## Requirements Inventory
 

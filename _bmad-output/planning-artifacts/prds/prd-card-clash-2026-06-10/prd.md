@@ -29,7 +29,7 @@ v1 is intentionally small: one hardcoded theme (One Piece), one hardcoded deck, 
 
 **Counter-metric:** time-to-playable. If polishing any feature delays the first complete friend-vs-friend match, the feature loses. Gold-plating is the failure mode this project must avoid.
 
-**Development approach (binding constraint):** Danilo writes all code himself. AI assistance is limited to guidance — tutorial-style steps, pointing direction, design discussion, and code review. Auto-generated implementation code is explicitly out of bounds: hand-written code is the point of the project, not a means to it. A feature delivered as generated code counts as a failure against the "interview-ready engineering" goal, even if it works.
+**Development approach (revised 2026-07-16, D23 — supersedes D18):** AI plans and implements via BMAD, with delegated git (commit, push, PR, merge); Danilo requests features and approves story specs. The original binding constraint (Danilo hand-writes all code, AI mentors only) applied from project start through Epic 2 story 2.5 and is retired to move faster now that the interview-practice purpose no longer applies.
 
 ## 3. Scope
 

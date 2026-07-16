@@ -13,11 +13,17 @@ Stated upfront as part of the project's learning purpose; kept out of the PRD bo
 
 ## Working agreement for downstream phases (owner: Danilo)
 
-Danilo codes; AI mentors. Concretely, for any tool/skill/agent used downstream of this PRD:
+**Revised 2026-07-16 (D23, supersedes the original D18 agreement):** AI plans and implements; Danilo requests features and approves. Concretely, for any tool/skill/agent used downstream of this PRD:
 
-- **Yes:** breaking work into ordered, tutorial-sized steps; explaining concepts and patterns; pointing in the right direction/API/approach; reviewing Danilo's hand-written code; pairing on debugging by asking guiding questions; writing planning artifacts (architecture, epics, stories).
-- **No:** generating implementation code, scaffolding feature code, or "fixing it for him." Tiny illustrative snippets to explain a concept are acceptable; anything Danilo would paste into the project is not.
-- **BMad routing implication:** planning skills (`bmad-create-architecture`, `bmad-create-epics-and-stories`, `bmad-create-story`) remain fully useful — stories become Danilo's tutorial steps. Code-executing skills (`bmad-dev-story`, `bmad-quick-dev`, `bmad-story-automator`) should NOT be used as designed; instead, run stories manually with AI in mentor/review mode, and use `bmad-code-review` on Danilo's own commits.
+- **AI does:** BMAD planning (architecture, epics, stories), full implementation via `bmad-dev-story` / `bmad-quick-dev` as designed, tests, code review, and git operations (commit, push, PR, merge) — no per-action confirmation needed.
+- **Danilo does:** requests features, approves story specs before dev, and decides on anything that changes scope. Stories already marked ready-for-dev count as approved.
+- **Communication:** summaries of delivered work stay in plain, simple English, with framework concepts explained concretely (Danilo is newer to Express/Socket.IO than to pure TypeScript).
+
+<details><summary>Original D18 agreement (2026-06-10 → 2026-07-16, retired)</summary>
+
+Danilo codes; AI mentors. Yes: tutorial-sized steps, explaining, direction-pointing, reviewing hand-written code, planning artifacts. No: generating implementation code, scaffolding, "fixing it for him." Code-executing skills (`bmad-dev-story`, `bmad-quick-dev`, `bmad-story-automator`) not used as designed; stories run manually with AI in mentor/review mode.
+
+</details>
 
 ## Rejected alternatives (rationale preserved)
 
