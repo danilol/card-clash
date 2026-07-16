@@ -18,6 +18,11 @@ const io: Server<ClientToServerEvents, ServerToClientEvents> = new Server(
     cors: {
       origin: CLIENT_ORIGIN,
     },
+    // FR5: detect a vanished client in ≈10s (5s ping cadence + 5s pong wait),
+    // not the ~45s Socket.IO defaults. A blip that recovers within the window
+    // never fires 'disconnect' (story 2.6, decisions 6a/6f).
+    pingInterval: 5000,
+    pingTimeout: 5000,
   },
 );
 

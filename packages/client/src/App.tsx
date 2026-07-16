@@ -67,6 +67,7 @@ function App() {
       return (
         <ResultView
           view={state.view}
+          error={state.error}
           onRematch={() => {
             socket.emit('match:rematch', {
               matchId,

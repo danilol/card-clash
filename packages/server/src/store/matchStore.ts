@@ -79,6 +79,21 @@ export function endMatch(matchId: string, state: MatchState): MatchEntry {
   return entry;
 }
 
+// Linear scan over the Map — fine at this scale; a socketId→matchId index
+// would be premature (story 2.6, decision 6c).
+export function findMatchBySocketId(socketId: string): MatchEntry | undefined {
+  for (const entry of matches.values()) {
+    if (entry.players.some((p) => p.socketId === socketId)) {
+      return entry;
+    }
+  }
+  return undefined;
+}
+
+export function deleteMatch(matchId: string): void {
+  matches.delete(matchId);
+}
+
 export function acceptRematch(matchId: string, playerId: string): MatchEntry {
   const entry = matches.get(matchId);
   if (!entry) {
