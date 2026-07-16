@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { PlayerView, StatKey } from '@card-clash/engine';
 
 interface CardViewProps {
@@ -16,15 +16,14 @@ export function CardView({
   const stats = topCard?.stats;
   const isYourTurn = view?.chooser === view?.you;
 
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (topCard?.id) {
-      setImgSrc(`/images/cards/${topCard.id}.png`);
-    } else {
-      setImgSrc(null);
-    }
-  }, [topCard?.id]);
+  // Art loads png → jpg → fallback. Derived from per-card failure counts so
+  // no effect is needed (react-hooks/set-state-in-effect).
+  const [artFailures, setArtFailures] = useState<Record<string, number>>({});
+  const failures = topCard ? (artFailures[topCard.id] ?? 0) : 0;
+  const imgSrc =
+    topCard && failures < 2
+      ? `/images/cards/${topCard.id}.${failures === 0 ? 'png' : 'jpg'}`
+      : null;
 
   if (!topCard) {
     return (
@@ -33,11 +32,10 @@ export function CardView({
   }
 
   const handleImgError = () => {
-    if (topCard?.id && imgSrc === `/images/cards/${topCard.id}.png`) {
-      setImgSrc(`/images/cards/${topCard.id}.jpg`);
-    } else {
-      setImgSrc(null);
-    }
+    setArtFailures((f) => ({
+      ...f,
+      [topCard.id]: (f[topCard.id] ?? 0) + 1,
+    }));
   };
 
   return (

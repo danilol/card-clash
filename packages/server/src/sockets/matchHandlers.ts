@@ -28,6 +28,7 @@ import {
 import { buildStartViews } from './startViews.js';
 import { rematchCommandSchema } from '@card-clash/engine';
 import { resolveDisconnect } from './resolveDisconnect.js';
+import { persistFinishedMatch } from '../db/persistFinishedMatch.js';
 
 export function registerMatchHandlers(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
@@ -163,6 +164,7 @@ export function registerMatchHandlers(
         // late/stray selectStat hits the terminal state → applyCommand returns
         // MATCH_OVER instead of resolving another round on a stale state.
         endMatch(parsed.data.matchId, result.state);
+        persistFinishedMatch(entry, result.state); // FR27, fire-and-forget
         for (const { socketId, view } of buildStartViews(
           result.state,
           entry.players,
@@ -198,6 +200,9 @@ export function registerMatchHandlers(
             const forfeited = forfeitMatch(entry.state, resolution.winnerId);
             const view = projectFor(forfeited, resolution.winnerId);
             io.to(resolution.remainingSocketId).emit('match:ended', view);
+            // FR27: persist the forfeited state (entry.state was never
+            // updated on this path) BEFORE deleteMatch evicts the entry.
+            persistFinishedMatch(entry, forfeited);
           } else {
             // Defensive: a 'playing' entry always has state, but if that
             // invariant ever breaks, never evict silently — tell the survivor.

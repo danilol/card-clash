@@ -65,3 +65,9 @@
 - Forfeited player who silently reconnects (blip > ~10s, no page reload) stays stuck on a dead match screen — their own `disconnect` only flips `status`, and every action returns `MATCH_NOT_FOUND` until they reload. Proper handling IS the grace-period reconnect follow-up (decision D16); do not band-aid separately.
 - One socket can join two different `waiting` matches (the `ALREADY_JOINED` guard is per-entry); on disconnect only the first entry found is resolved and the second leaks with a dead socketId. Pre-existing join-hardening gap; fix in the join handler (e.g. reject when `findMatchBySocketId(socket.id)` hits) when touching the lobby next.
 - Cosmetic race: an in-flight `match:selectStat` that loses the race against a forfeit gets `MATCH_NOT_FOUND` back, briefly showing a stray "Match not found" alert on the winner's result screen. Harmless; revisit with reconnect/UX polish.
+
+## Deferred from: code review of 3-1-finished-matches-are-written-to-postgresql (2026-07-16)
+
+- The `matches` table stores no `match_id` and identifies players by nickname only (AC1's v1 column list; NFR5 = no accounts). Consequences accepted for v1: rows can't be correlated with server logs or deduplicated, and two players with the same nickname make `winner_nickname` ambiguous. Revisit when the schema next evolves (3.2+ or accounts).
+- No graceful shutdown: `pool.end()` is never called, so an insert in flight during a server stop is silently lost. Belongs to the deployment story (NFR6) alongside signal handling.
+- CardView art that failed twice stays on the fallback for the whole session (failure map is per-card, never reset). Cosmetic, accepted in the 3.1 review; a per-appearance retry would need effect-style state sync again.
