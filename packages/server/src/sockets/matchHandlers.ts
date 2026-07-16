@@ -7,7 +7,9 @@ import type {
 import {
   acceptRematch,
   addPlayer,
+  deleteMatch,
   endMatch,
+  findMatchBySocketId,
   getMatch,
   startMatch,
   updateMatchState,
@@ -17,12 +19,15 @@ import {
   applyCommand,
   createMatch,
   defaultRng,
+  forfeitMatch,
   matchJoinCommandSchema,
   onePieceDeck,
+  projectFor,
   selectStatCommandSchema,
 } from '@card-clash/engine';
 import { buildStartViews } from './startViews.js';
 import { rematchCommandSchema } from '@card-clash/engine';
+import { resolveDisconnect } from './resolveDisconnect.js';
 
 export function registerMatchHandlers(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
@@ -176,6 +181,44 @@ export function registerMatchHandlers(
       }
     });
 
+    socket.on('disconnect', () => {
+      const entry = findMatchBySocketId(socket.id);
+      if (!entry) return;
+
+      const resolution = resolveDisconnect(entry, socket.id);
+
+      switch (resolution.kind) {
+        case 'none':
+          return;
+        case 'abandon':
+          break;
+        case 'forfeit': {
+          // Emit BEFORE evicting; projectFor stays the only door (NFR2).
+          if (entry.state) {
+            const forfeited = forfeitMatch(entry.state, resolution.winnerId);
+            const view = projectFor(forfeited, resolution.winnerId);
+            io.to(resolution.remainingSocketId).emit('match:ended', view);
+          } else {
+            // Defensive: a 'playing' entry always has state, but if that
+            // invariant ever breaks, never evict silently — tell the survivor.
+            io.to(resolution.remainingSocketId).emit('match:error', {
+              code: 'OPPONENT_LEFT',
+              message: 'Opponent left the match',
+            });
+          }
+          break;
+        }
+        case 'opponentLeft':
+          io.to(resolution.remainingSocketId).emit('match:error', {
+            code: 'OPPONENT_LEFT',
+            message: 'Opponent left the match',
+          });
+          break;
+      }
+
+      deleteMatch(entry.matchId);
+    });
+
     socket.on('match:rematch', (payload) => {
       const parsed = rematchCommandSchema.safeParse(payload);
       if (!parsed.success) {
@@ -204,9 +247,7 @@ export function registerMatchHandlers(
         return;
       }
 
-      const player = entry.players.find(
-        (p) => p.token === parsed.data.token,
-      );
+      const player = entry.players.find((p) => p.token === parsed.data.token);
 
       if (!player) {
         socket.emit('match:error', {

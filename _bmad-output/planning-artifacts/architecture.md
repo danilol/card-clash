@@ -58,9 +58,10 @@ holder-only Super Trump marker, chooser call-out reveal).
   +JSONB) vs document (MongoDB) under deliberation, to be decided in the
   data-layer step with pros/cons recorded.
 - Deployment: Danilo-operated, local + single small remote host.
-- Process constraint (binding): Danilo hand-writes all code; AI guides and
-  reviews only. Architecture decisions must be explicit, justified, and
-  interview-explainable; stories derived later become tutorial-sized steps.
+- Process constraint (revised 2026-07-16, PRD D23): AI implements via BMAD;
+  Danilo requests features and approves. Architecture decisions must still be
+  explicit and justified. (Original binding constraint — Danilo hand-writes
+  all code, AI guides/reviews only — applied through story 2.5.)
 - Counter-metric from PRD: time-to-playable — bias against gold-plating.
 
 ### Cross-Cutting Concerns Identified
@@ -596,8 +597,8 @@ triggers); grace-period reconnect (token seam in place); multi-theme
 
 ### Implementation Handoff
 
-**Guidelines (binding):** Danilo writes all code by hand; AI guides and
-reviews against this document. Decisions are followed as documented;
+**Guidelines (revised 2026-07-16, PRD D23):** AI implements against this
+document; Danilo approves stories. Decisions are followed as documented;
 if reality disproves one, amend this document first, then the code.
 
 **First Implementation Priority:** hand-write root package.json

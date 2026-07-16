@@ -20,6 +20,7 @@ export { onePieceDeck } from './deck/onePieceDeck.js';
 
 export { createMatch } from './match/setup.js';
 export { applyCommand } from './match/applyCommand.js';
+export { forfeitMatch } from './match/forfeit.js';
 export { projectFor } from './projection/projectFor.js';
 export type {
   ClientToServerEvents,

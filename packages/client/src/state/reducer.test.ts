@@ -104,6 +104,21 @@ describe('app reducer', () => {
     expect(next.rematchPending).toBe(false);
   });
 
+  it('match/ended → clears a stale in-match error (story 2.6 review)', () => {
+    const withError = reducer(initialState, {
+      type: 'match/error',
+      error: 'Not your turn',
+    });
+    const view = {
+      you: 'p-1',
+      result: { winner: 'p-1', reason: 'forfeit' },
+      roundsPlayed: 3,
+    } as unknown as PlayerView;
+
+    const next = reducer(withError, { type: 'match/ended', view });
+    expect(next.error).toBeNull();
+  });
+
   it('match/rematchPending sets the flag; the next match/state clears it', () => {
     const pending = reducer(initialState, { type: 'match/rematchPending' });
     expect(pending.rematchPending).toBe(true);

@@ -1,6 +1,6 @@
 # card-clash
 
-One Piece Top Trumps for two players over a shared link — built as TypeScript interview practice. All code hand-written by Danilo; AI in mentor/review mode only.
+One Piece Top Trumps for two players over a shared link. Engine and Epics 1–2 (through story 2.5) hand-written by Danilo as TypeScript interview practice; from 2026-07-16 development is AI-implemented via BMAD with Danilo directing and approving.
 
 ## Stack
 

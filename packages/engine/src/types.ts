@@ -72,7 +72,7 @@ export type MatchResult = {
   reason: EndReason;
 };
 
-export type EndReason = 'allCards' | 'roundCap';
+export type EndReason = 'allCards' | 'roundCap' | 'forfeit';
 
 export type PlayerView = {
   readonly you: PlayerId;

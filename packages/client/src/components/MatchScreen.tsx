@@ -15,7 +15,6 @@ export function MatchScreen({
   onSelectStat,
   disabled = false,
 }: MatchScreenProps): React.JSX.Element {
-
   const getStatLabel = (
     key: string,
     definitions: readonly StatDefinition[],

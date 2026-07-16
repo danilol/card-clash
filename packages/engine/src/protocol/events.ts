@@ -42,7 +42,12 @@ export type LobbyErrorCode =
   | 'ALREADY_JOINED'
   | 'NOT_IN_MATCH';
 
-export type WireErrorCode = LobbyErrorCode | EngineCommandErrorCode;
+// OPPONENT_LEFT: server-pushed when the opponent disconnects while the match
+// is on the result screen (story 2.6); not a reply to any client command.
+export type WireErrorCode =
+  | LobbyErrorCode
+  | EngineCommandErrorCode
+  | 'OPPONENT_LEFT';
 
 export type ErrorPayload = {
   code: WireErrorCode;

@@ -5,6 +5,8 @@ import {
   getMatch,
   addPlayer,
   endMatch,
+  findMatchBySocketId,
+  deleteMatch,
 } from './matchStore.js';
 
 describe('matchStore', () => {
@@ -55,14 +57,38 @@ describe('matchStore', () => {
 
   it('endMatch persists the final state and flips status to ended', () => {
     const entry = createMatchEntry();
-    const finalState = createMatch(
-      onePieceDeck,
-      ['p-1', 'p-2'],
-      mulberry32(7),
-    );
+    const finalState = createMatch(onePieceDeck, ['p-1', 'p-2'], mulberry32(7));
     const ended = endMatch(entry.matchId, finalState);
     expect(ended.status).toBe('ended');
     expect(ended.state).toBe(finalState);
     expect(getMatch(entry.matchId)?.status).toBe('ended');
+  });
+});
+
+describe('matchStore — story 2.6 helpers', () => {
+  it('findMatchBySocketId returns the entry containing that socketId', () => {
+    const entry = createMatchEntry();
+    addPlayer(entry.matchId, {
+      playerId: 'p-1',
+      token: 't-1',
+      nickname: 'Zoro',
+      socketId: 's-zoro',
+    });
+    expect(findMatchBySocketId('s-zoro')).toBe(entry);
+  });
+
+  it('findMatchBySocketId returns undefined for an unknown socketId', () => {
+    createMatchEntry();
+    expect(findMatchBySocketId('s-nobody')).toBeUndefined();
+  });
+
+  it('deleteMatch evicts the entry: getMatch is undefined afterwards', () => {
+    const entry = createMatchEntry();
+    deleteMatch(entry.matchId);
+    expect(getMatch(entry.matchId)).toBeUndefined();
+  });
+
+  it('deleteMatch on an unknown id is a safe no-op', () => {
+    expect(() => deleteMatch('does-not-exist')).not.toThrow();
   });
 });
