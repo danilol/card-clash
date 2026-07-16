@@ -3,6 +3,7 @@ import type { AckPayload } from '@card-clash/engine';
 import { socket } from '../socket';
 import type { Dispatch } from 'react';
 import type { Action, Match } from '../state/reducer';
+import { RecentMatches } from './RecentMatches';
 
 export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
   const [nickname, setNickname] = useState('');
@@ -77,37 +78,40 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
   };
 
   return (
-    <form onSubmit={(e) => e.preventDefault()}>
-      <div>
+    <>
+      <form onSubmit={(e) => e.preventDefault()}>
         <div>
-          <h1>Card Clash</h1>
-          <p>Create a match and get a shareable link</p>
-        </div>
+          <div>
+            <h1>Card Clash</h1>
+            <p>Create a match and get a shareable link</p>
+          </div>
 
-        <div>
-          <label htmlFor="nickname">Nickname</label>
-          <input
-            type="text"
-            id="nickname"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            disabled={isLoading}
-            placeholder="Enter your match nickname"
-          />
-        </div>
+          <div>
+            <label htmlFor="nickname">Nickname</label>
+            <input
+              type="text"
+              id="nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              disabled={isLoading}
+              placeholder="Enter your match nickname"
+            />
+          </div>
 
-        {error && (
-          <p className="error-message" style={{ color: 'red' }}>
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="error-message" style={{ color: 'red' }}>
+              {error}
+            </p>
+          )}
 
-        <div>
-          <button onClick={handleCreateMatch} disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create'}
-          </button>
+          <div>
+            <button onClick={handleCreateMatch} disabled={isLoading}>
+              {isLoading ? 'Creating...' : 'Create'}
+            </button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+      <RecentMatches />
+    </>
   );
 }

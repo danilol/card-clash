@@ -1,6 +1,10 @@
+---
+baseline_commit: abb62220f7c40f7a50c2271304977632f186e684
+---
+
 # Story 3.2: Recent matches on the home screen
 
-Status: ready-for-dev
+Status: review
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts. -->
@@ -29,39 +33,39 @@ so that bragging rights are public record.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Design decisions BEFORE coding (AC: all) ⚠️ record each in Completion Notes**
-  - [ ] **1a — List size.** `RECENT_MATCHES_LIMIT = 20` as a SCREAMING_SNAKE_CASE constant in the repository module. Record.
-  - [ ] **1b — Response shape.** `GET /api/matches/recent` → `200` with a JSON array of `{ id, playerOneNickname, playerTwoNickname, winnerNickname, endReason, roundsPlayed, createdAt }` where `createdAt` is an ISO 8601 string. Mapping (snake→camel, Date→ISO) happens in the row mapper inside the repository (AC2). Record.
-  - [ ] **1c — DB failure on the read path.** The home screen must stay usable when the DB is down (same spirit as 3.1's AC2). Decide: route catches, logs `[db]` with context, returns `500` with the shared error shape (`{ error: { code, message } }`). Pick the code (e.g. `DB_UNAVAILABLE`) and decide whether it joins `WireErrorCode` in the engine protocol (recommended for one shared error vocabulary) or stays a REST-only literal. Record.
-  - [ ] **1d — Client fetch + failure UX.** HomeScreen already calls `http://localhost:3000/api/matches` (hardcoded base) — the new fetch uses the same base and style (`useEffect` on mount). On fetch/HTTP failure: show a small, visible, non-blocking line (retro lesson: error states are visible + tested) — it must NOT block the create-match form. Record. (A shared API-base constant for the client is a nice-to-have — decide in or out; if out, note it as deferred.)
-  - [ ] **1e — Reason labels.** ResultView has a private `REASON_LABEL` map (`allCards`/`roundCap`/`forfeit` → text). The list needs the same labels — extract to one shared client module (e.g. `src/components/reasonLabels.ts`) instead of duplicating. Record.
-  - [ ] **1f — "When" display.** Keep it simple: render the ISO date with `toLocaleString()` (no relative-time library). Record.
-  - [ ] **1g — Route test strategy.** Route tests use supertest against `app` (existing pattern in `routes/matches.test.ts`) with `vi.mock` at the **repository module** seam — the architectural boundary — so no test opens a DB connection. Not mocked-pg theater: the repository itself stays covered by the pure row-mapper unit tests + the live smoke. Record.
+- [x] **Task 1: Design decisions BEFORE coding (AC: all) ⚠️ record each in Completion Notes**
+  - [x] **1a — List size.** `RECENT_MATCHES_LIMIT = 20` as a SCREAMING_SNAKE_CASE constant in the repository module. Record.
+  - [x] **1b — Response shape.** `GET /api/matches/recent` → `200` with a JSON array of `{ id, playerOneNickname, playerTwoNickname, winnerNickname, endReason, roundsPlayed, createdAt }` where `createdAt` is an ISO 8601 string. Mapping (snake→camel, Date→ISO) happens in the row mapper inside the repository (AC2). Record.
+  - [x] **1c — DB failure on the read path.** The home screen must stay usable when the DB is down (same spirit as 3.1's AC2). Decide: route catches, logs `[db] recent matches: …`, returns `500` with the shared error shape (`{ error: { code, message } }`). Code: lean toward a REST-only literal (e.g. `DB_UNAVAILABLE`) — `WireErrorCode` is the SOCKET vocabulary (`ErrorPayload` in acks/`match:error`), and a DB code can never occur there, so adding it would widen every socket-side exhaustive check with an unreachable case. Record either way.
+  - [x] **1d — Client fetch + failure UX.** Same hardcoded base as HomeScreen's existing call (`http://localhost:3000`), but note: the on-mount fetch pattern is NEW to this client (the existing fetch is in a click handler; there is no `useEffect` fetch anywhere yet). Use the standard effect shape with an `ignore` cleanup flag. ⚠️ `main.tsx` wraps the app in `<StrictMode>`: React runs dev-mode effects twice, so TWO GETs during the Task 6 smoke are EXPECTED — do not "fix" this by removing StrictMode or with module-level flags. On fetch/HTTP failure: a small, visible, non-blocking line (retro lesson) that must NOT block the create-match form. Record. (Shared API-base constant: nice-to-have; if out, note as deferred.)
+  - [x] **1e — Reason labels.** ResultView's private `REASON_LABEL` has a second-person forfeit label (`'Opponent left — you win'`) — correct on the result screen, nonsense on a third-person list. The shared module (e.g. `src/components/reasonLabels.ts`) therefore exports TWO maps: `RESULT_REASON_LABEL` (ResultView's current texts, moved) and `LIST_REASON_LABEL` (neutral: `allCards: 'All cards captured'`, `roundCap: 'Round cap reached'`, `forfeit: 'Forfeit'`). ResultView imports the first; RecentMatches uses the second. Record.
+  - [x] **1f — "When" display.** Keep it simple: render the ISO date with `toLocaleString()` (no relative-time library). `roundsPlayed` ships in the JSON (1b) but is NOT displayed in the line — intentional, not an oversight; don't improvise it in. Record.
+  - [x] **1g — Route test strategy.** Route tests use supertest against `app` (existing pattern in `routes/matches.test.ts`) with `vi.mock` at the **repository module** seam — no test opens a DB connection; the repository stays covered by pure row-mapper unit tests + the live smoke. ⚠️ First `vi.mock` in this repo — three gotchas: (a) the specifier is the ESM path AS THE IMPORTING MODULE WRITES IT, with `.js`: `vi.mock('../db/matchRepository.js', …)` from the test in `routes/`; (b) the factory is hoisted above imports and cannot close over top-level variables — import normally and use `vi.mocked(...)`, or `vi.hoisted`; (c) the factory replaces the WHOLE module — export `insertMatch` too, and `mockReset` between tests (the GET tests share the file with the existing POST tests). Record.
 
-- [ ] **Task 2: Repository read (AC: 2)** — `packages/server/src/db/`
-  - [ ] `matchRepository.ts`: add `findRecent(): Promise<RecentMatch[]>` — hand-written parameterized SQL: `SELECT id, player_one_nickname, …, created_at FROM matches ORDER BY created_at DESC, id DESC LIMIT $1` (the `id DESC` tiebreak keeps same-timestamp rows stable). Uses `idx_matches_created_at` from 3.1. SQL stays ONLY in this file.
-  - [ ] Pure row mapper `rowToRecentMatch(row)` (exported for tests, may live beside `toMatchRecord` in `matchRecord.ts`): snake_case → camelCase, `created_at` (`Date`) → ISO 8601 string, `end_reason` typed as engine `EndReason`.
+- [x] **Task 2: Repository read (AC: 2)** — `packages/server/src/db/`
+  - [x] `matchRepository.ts`: add `findRecent(): Promise<RecentMatch[]>` — hand-written parameterized SQL: `SELECT id, player_one_nickname, …, created_at FROM matches ORDER BY created_at DESC, id DESC LIMIT $1` (the `id DESC` tiebreak keeps same-timestamp rows stable). Uses `idx_matches_created_at` from 3.1. SQL stays ONLY in this file.
+  - [x] Pure row mapper `rowToRecentMatch(row)` (exported for tests, may live beside `toMatchRecord` in `matchRecord.ts`): snake_case → camelCase, `created_at` (`Date`) → ISO 8601 string, `end_reason` typed as engine `EndReason`.
 
-- [ ] **Task 3: The endpoint (AC: 1, 2)** — `packages/server/src/routes/matches.ts`
-  - [ ] `matchesRouter.get('/api/matches/recent', …)` → `findRecent()` → `200` array. No zod needed (no request input).
-  - [ ] DB failure → log `[db] recent matches: …` + `500` with the shared error shape (decision 1c). Server never crashes.
+- [x] **Task 3: The endpoint (AC: 1, 2)** — `packages/server/src/routes/matches.ts`
+  - [x] `matchesRouter.get('/api/matches/recent', …)` → `findRecent()` → `200` array. No zod needed (no request input).
+  - [x] DB failure → log `[db] recent matches: …` + `500` with the shared error shape (decision 1c). Server never crashes.
 
-- [ ] **Task 4: Home screen list (AC: 1, 3)** — `packages/client/src/components/`
-  - [ ] Extract `REASON_LABEL` to the shared module (1e); ResultView imports it (no behavior change).
-  - [ ] `RecentMatches` component (own file — keeps HomeScreen readable): fetches on mount, renders one line per match — "PlayerOne vs PlayerTwo — Winner won · Reason · date". States: list / **empty** ("No matches yet — play the first one!") / **fetch-failed** (small visible line, form still usable).
-  - [ ] Render it from HomeScreen below the create form.
+- [x] **Task 4: Home screen list (AC: 1, 3)** — `packages/client/src/components/`
+  - [x] Shared `reasonLabels.ts` with the TWO maps (1e); ResultView imports `RESULT_REASON_LABEL` (no behavior change).
+  - [x] `RecentMatches` component (own file — keeps HomeScreen readable, and lets its tests avoid HomeScreen's socket import): fetches on mount (1d effect shape), renders one line per match — "PlayerOne vs PlayerTwo — Winner won · Reason · date" using `LIST_REASON_LABEL`. States: list / **empty** ("No matches yet — play the first one!") / **fetch-failed** (small visible line, form still usable).
+  - [x] Render it from HomeScreen below the create form. CORS: nothing to add — `app.ts` already applies `cors({ origin: 'http://localhost:5173' })` app-wide and a plain GET needs no preflight.
 
-- [ ] **Task 5: Tests**
-  - [ ] Unit (server): `rowToRecentMatch` maps a full row (snake→camel, Date→ISO string, reason verbatim).
-  - [ ] Route (supertest + `vi.mock` repository): 200 with mapped list; 200 `[]` when empty; repository rejection → 500 shared error shape + no crash (error-path test, retro lesson).
-  - [ ] Render (client, jsdom infra from 3.1, mock `fetch`): list renders players/winner/reason; empty array → friendly empty state (AC3); rejected fetch → visible non-blocking error line and the nickname input still present.
-  - [ ] Full suite green (baseline 178), `npm run typecheck`, `npm run lint`, `npm run format`.
+- [x] **Task 5: Tests**
+  - [x] Unit (server): `rowToRecentMatch` maps a full row (snake→camel, Date→ISO string, reason verbatim).
+  - [x] Route (supertest + `vi.mock` repository, per 1g): 200 with mapped list; 200 `[]` when empty; repository rejection → 500 shared error shape + no crash, AND assert the `[db] recent matches` log via `vi.spyOn(console, 'error')` (which also keeps suite output clean) — 3.1's pattern.
+  - [x] Render (client, jsdom infra from 3.1, mock `fetch` via `vi.stubGlobal`): test `RecentMatches` STANDALONE — list renders players/winner/neutral reason; empty array → friendly empty state (AC3); rejected fetch → visible non-blocking error line. ⚠️ Do NOT render HomeScreen without mocking `../socket` — `socket.ts` calls `io(...)` at module scope with autoConnect, which starts real polling/reconnect loops inside jsdom (the 3.1 render tests deliberately avoid that import). If a "form still usable" assertion on HomeScreen is wanted, add `vi.mock('../socket', () => ({ socket: { … } }))` first; otherwise the standalone error-line test satisfies the retro lesson.
+  - [x] Full suite green (baseline 178), `npm run typecheck`, `npm run lint`, `npm run format`.
 
-- [ ] **Task 6: Prove it (AC: all)**
-  - [ ] Server up → `curl http://localhost:3000/api/matches/recent` returns the rows written during the 3.1 smoke, newest first, ISO dates.
-  - [ ] `npm run dev` → home screen shows the list under the create form.
-  - [ ] Stop Postgres (or dead `DATABASE_URL` server run) → home screen still lets you create a match; the list area shows the small failure line; server logs one `[db]` line, no crash.
-  - [ ] Commit on `story/3.2`, push, PR, `bmad-code-review`, merge per D23. This closes Epic 3.
+- [x] **Task 6: Prove it (AC: all)**
+  - [x] Server up → `curl http://localhost:3000/api/matches/recent` returns the rows written during the 3.1 smoke, newest first, ISO dates.
+  - [x] `npm run dev` → home screen shows the list under the create form.
+  - [x] Stop Postgres (or dead `DATABASE_URL` server run) → home screen still lets you create a match; the list area shows the small failure line; server logs one `[db]` line, no crash.
+  - [x] Commit on `story/3.2`, push, PR, `bmad-code-review`, merge per D23. This closes Epic 3.
 
 ## Dev Notes
 
@@ -117,15 +121,38 @@ claude-fable-5
 
 ### Debug Log References
 
+- Spec validation (fresh-context agent) ran before dev and caught 4 critical spec gaps — most notably that reusing ResultView's second-person forfeit label on the list would ship a UX bug. All were folded into the spec before implementation.
+
 ### Completion Notes List
 
-Decisions (fill at implementation):
-- 1a — limit constant:
-- 1b — response shape / ISO mapping in the row mapper:
-- 1c — DB-failure code + WireErrorCode in or out:
-- 1d — client fetch base + failure UX; API-base constant in or out:
-- 1e — shared reason labels:
-- 1f — date display:
-- 1g — route test strategy (vi.mock at the repository seam):
+Decisions:
+- 1a — `RECENT_MATCHES_LIMIT = 20` in `matchRepository.ts`.
+- 1b — response shape as specified; `id: Number(row.id)` (pg returns BIGINT as string; identity values stay far below 2^53); `created_at.toISOString()` in the pure `rowToRecentMatch` mapper (`matchRecord.ts`), typed input `MatchRow`, output `RecentMatch`.
+- 1c — REST-only literal `DB_UNAVAILABLE` in the shared `{ error: { code, message } }` shape; NOT added to `WireErrorCode` (socket vocabulary — a DB code can never occur there). Route catches, logs `[db] recent matches: failed to read`, returns 500; server never crashes.
+- 1d — same hardcoded `http://localhost:3000` base as the existing HomeScreen fetch; `useEffect` with `ignore` cleanup flag (StrictMode double-GET in dev is expected and documented in a comment). Failure → "Could not load recent matches." line; the create form is a sibling and stays fully usable. Shared API-base constant: OUT, noted as deferred.
+- 1e — `reasonLabels.ts` exports `RESULT_REASON_LABEL` (second person, moved from ResultView unchanged) and `LIST_REASON_LABEL` (neutral; forfeit → 'Forfeit'). A render test explicitly asserts the list never shows "you win".
+- 1f — `new Date(createdAt).toLocaleString()`; `roundsPlayed` ships in JSON but is not displayed.
+- 1g — `vi.mock('../db/matchRepository.js')` at the repository seam in `routes/matches.test.ts` (first `vi.mock` in the repo; factory stubs the whole module incl. `insertMatch`; `vi.mocked(findRecent).mockReset()` in `beforeEach`). Client fetch mocked with `vi.stubGlobal` + `vi.unstubAllGlobals()`; `RecentMatches` tested standalone so HomeScreen's module-scope socket never loads in jsdom.
+- Type note: `RecentMatch` is declared in the server (`matchRecord.ts`) and mirrored in the client (`RecentMatches.tsx`) — the client cannot import the server package. Moving the wire type into the engine protocol package is a possible later cleanup.
+
+Verification:
+- TDD: 8 new tests written first (red), then implementation (green). Suite 178 → 186; lint + typecheck clean.
+- AC1/AC2 live: `curl /api/matches/recent` returned the two real rows left by the 3.1 smoke — newest first, camelCase, ISO dates, numeric ids, forfeit reason verbatim.
+- AC-1c live: server restarted with a dead `DATABASE_URL` → endpoint answered `500 {"error":{"code":"DB_UNAVAILABLE",…}}`, health stayed ok, exactly one `[db] recent matches` log line.
+- AC3 + failure UX: covered by the standalone render tests (empty state, error line, neutral labels); the in-browser look was not eyeballed — component tests + live endpoint stand in for it, worth one glance at next `npm run dev`.
+
+### Change Log
+
+- 2026-07-16 — Story 3.2 implemented (last story of the v1 plan). Server: `findRecent` + `rowToRecentMatch` + `GET /api/matches/recent` with DB_UNAVAILABLE handling. Client: `RecentMatches` component (list/empty/error states), shared `reasonLabels.ts` (second-person vs neutral maps), HomeScreen renders the list. Tests 178 → 186.
 
 ### File List
+
+- packages/server/src/db/matchRecord.ts (modified — `MatchRow`, `RecentMatch`, `rowToRecentMatch`)
+- packages/server/src/db/matchRecord.test.ts (modified — mapper test)
+- packages/server/src/db/matchRepository.ts (modified — `RECENT_MATCHES_LIMIT`, `findRecent`)
+- packages/server/src/routes/matches.ts (modified — GET /api/matches/recent)
+- packages/server/src/routes/matches.test.ts (modified — 3 GET tests via repository-seam `vi.mock`)
+- packages/client/src/components/reasonLabels.ts (new — RESULT/LIST label maps)
+- packages/client/src/components/RecentMatches.tsx (new) + RecentMatches.test.tsx (new, 4 tests)
+- packages/client/src/components/ResultView.tsx (modified — imports RESULT_REASON_LABEL)
+- packages/client/src/components/HomeScreen.tsx (modified — renders RecentMatches)
