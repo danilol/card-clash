@@ -5,7 +5,22 @@ One Piece Top Trumps for two players over a shared link. Engine and Epics 1–2 
 ## Stack
 
 TypeScript 6 · Node 24 LTS · npm workspaces · Vitest 4 · zod 4
-(later: Express 5 + Socket.IO 4.8 · React 19 + Vite 8 · PostgreSQL)
+Express 5 + Socket.IO 4.8 · React 19 + Vite 8 · PostgreSQL (pg + node-pg-migrate)
+
+## Local database
+
+Finished matches are persisted to PostgreSQL (any modern version; a Homebrew
+`postgresql@14`+ service works):
+
+```sh
+brew install postgresql@14 && brew services start postgresql@14  # if not installed
+createdb card_clash_dev
+cp .env.example .env                    # DATABASE_URL lives at the repo root
+npm run migrate -w @card-clash/server   # creates the matches table
+```
+
+A DB failure never blocks gameplay — the server logs it and the match still
+ends normally.
 
 ## Packages
 

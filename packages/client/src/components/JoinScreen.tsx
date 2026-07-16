@@ -50,8 +50,8 @@ export function JoinScreen({
         playerId: ack.playerId,
         token: ack.token,
       });
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,10 @@
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
+import { loadConfig } from './config.js';
 import { app } from './app.js';
+
+// Fail fast: an invalid/missing .env stops the server here, at startup (AC1).
+loadConfig();
 import type {
   ClientToServerEvents,
   ServerToClientEvents,

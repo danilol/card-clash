@@ -11,12 +11,19 @@
     "test": "vitest run",
     "test:engine": "vitest run --project @card-clash/engine",
     "typecheck": "tsc --noEmit && npm run typecheck --workspaces",
+    "lint": "eslint .",
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "concurrently": "^10.0.3",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
     "prettier": "^3.8.4",
     "typescript": "^6.0.0",
+    "typescript-eslint": "^8.59.2",
     "vitest": "^4.0.0"
   },
   "keywords": [

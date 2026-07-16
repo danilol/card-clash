@@ -1,6 +1,10 @@
+---
+baseline_commit: 6b294dd3ffad5657dbd2e4c92c57f3b52b8439a9
+---
+
 # Story 3.1: Finished matches are written to PostgreSQL
 
-Status: ready-for-dev
+Status: review
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts. -->
@@ -32,48 +36,48 @@ so that results outlive the server process.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Epic 3 prep — retro action items (blocking, before any 3.1 code)**
-  - [ ] ESLint at the workspace root — ⚠️ do NOT reinvent: `packages/client/eslint.config.js` already exists (flat config, typescript-eslint, react-hooks, react-refresh, eslint ^10 devDeps). Promote to ONE root flat config covering all three packages (keep the react plugins scoped to `packages/client/**`), targeting unused imports/variables and dead code; dedupe the client devDeps into the root. Root script `npm run lint`; must pass on the current codebase (fix any findings it surfaces).
-  - [ ] Client test infra: the client currently has NO test config (`vite.config.ts` has no `test` block; root `vitest.config.ts` uses `projects: ['packages/*']`). Add `test: { environment: 'jsdom' }` to the client vite/vitest config and devDeps `jsdom`, `@testing-library/react`, `@testing-library/dom` (explicit peer of RTL v16+). Prove it with the two long-deferred render tests: ResultView shows the forfeit label and hides Rematch when `reason === 'forfeit'`; CardView renders 8 labeled stats. (Closes the 2.3→2.6 deferral chain.)
+- [x] **Task 1: Epic 3 prep — retro action items (blocking, before any 3.1 code)**
+  - [x] ESLint at the workspace root — ⚠️ do NOT reinvent: `packages/client/eslint.config.js` already exists (flat config, typescript-eslint, react-hooks, react-refresh, eslint ^10 devDeps). Promote to ONE root flat config covering all three packages (keep the react plugins scoped to `packages/client/**`), targeting unused imports/variables and dead code; dedupe the client devDeps into the root. Root script `npm run lint`; must pass on the current codebase (fix any findings it surfaces).
+  - [x] Client test infra: the client currently has NO test config (`vite.config.ts` has no `test` block; root `vitest.config.ts` uses `projects: ['packages/*']`). Add `test: { environment: 'jsdom' }` to the client vite/vitest config and devDeps `jsdom`, `@testing-library/react`, `@testing-library/dom` (explicit peer of RTL v16+). Prove it with the two long-deferred render tests: ResultView shows the forfeit label and hides Rematch when `reason === 'forfeit'`; CardView renders 8 labeled stats. (Closes the 2.3→2.6 deferral chain.)
 
-- [ ] **Task 2: Design decisions BEFORE coding (AC: all) ⚠️ record each in Completion Notes**
-  - [ ] **2a — Env loading.** `.env` (gitignored, already covered by `.gitignore`) and `.env.example` live at the **repo root** per the architecture tree. TWO consumers must load it, and workspace scripts run with cwd `packages/server`: (i) the server process — the dev script is `tsx watch src/server.ts`, so a `--env-file` flag must be threaded through tsx/node (note: no `start` script exists today); (ii) `npm run migrate` — node-pg-migrate only auto-loads `.env` if the `dotenv` package is installed; with `--env-file`-only it gets `DATABASE_URL` from nowhere. Decide one mechanism that covers both (installing `dotenv` as a server devDep is the simple answer) and record it with the exact paths.
-  - [ ] **2b — Env validation.** `src/config.ts` (the architecture's name for this file — do not invent `env.ts`) parses `process.env` with zod (`DATABASE_URL` required, valid URL). Fail fast with a clear message — but validate from the `server.ts` entry point (or an explicit `loadConfig()` called there), NOT at module import time, so tests importing handler modules never need `DATABASE_URL`. Decide whether the hardcoded `PORT`/`CLIENT_ORIGIN` constants (`server.ts:10-11`, `app.ts:5`) fold into `config.ts` now (trivial) or stay — record either way. Record the schema.
-  - [ ] **2c — The insert call site(s).** ⚠️ Matches end in TWO places since story 2.6: the `selectStat` ending (`matchHandlers.ts`, the `result.state.result` branch) and the disconnect forfeit (`matchHandlers.ts`, `case 'forfeit'`). Decide: one shared helper `persistFinishedMatch(entry, finalState)` called from both sites. On the forfeit path it MUST use the local `forfeited` state (not `entry.state`) and run BEFORE `deleteMatch`. Record.
-  - [ ] **2d — Fire-and-forget shape.** The insert must never block or crash the emit (AC2). Decide: `void persistFinishedMatch(...).catch(...)` with a `console.error` including the matchId, or an internal try/catch in the helper. Record.
-  - [ ] **2e — Winner nickname resolution.** The row stores nicknames, the state stores playerIds. Map `finalState.result.winner` → nickname via `entry.players`. Decide what happens if the lookup fails (should be impossible): log + skip the write vs insert with a placeholder. Record.
-  - [ ] **2f — Test strategy for SQL.** Decide: pure mapping helper (entry+state → row object) unit-tested without a DB; the live insert verified by the Task 7 smoke against local Postgres. No mocked-pg theater. Constraint: unit tests must never import `pool.ts`; keep the `pg.Pool` connection-lazy. Record.
-  - [ ] **2g — Schema details.** Decide the `id` column type (identity/serial vs uuid) and confirm `end_reason` is TEXT storing the engine `EndReason` strings (`'allCards' | 'roundCap' | 'forfeit'`) verbatim, so story 3.2 reads them back without translation. Record.
+- [x] **Task 2: Design decisions BEFORE coding (AC: all) ⚠️ record each in Completion Notes**
+  - [x] **2a — Env loading.** `.env` (gitignored, already covered by `.gitignore`) and `.env.example` live at the **repo root** per the architecture tree. TWO consumers must load it, and workspace scripts run with cwd `packages/server`: (i) the server process — the dev script is `tsx watch src/server.ts`, so a `--env-file` flag must be threaded through tsx/node (note: no `start` script exists today); (ii) `npm run migrate` — node-pg-migrate only auto-loads `.env` if the `dotenv` package is installed; with `--env-file`-only it gets `DATABASE_URL` from nowhere. Decide one mechanism that covers both (installing `dotenv` as a server devDep is the simple answer) and record it with the exact paths.
+  - [x] **2b — Env validation.** `src/config.ts` (the architecture's name for this file — do not invent `env.ts`) parses `process.env` with zod (`DATABASE_URL` required, valid URL). Fail fast with a clear message — but validate from the `server.ts` entry point (or an explicit `loadConfig()` called there), NOT at module import time, so tests importing handler modules never need `DATABASE_URL`. Decide whether the hardcoded `PORT`/`CLIENT_ORIGIN` constants (`server.ts:10-11`, `app.ts:5`) fold into `config.ts` now (trivial) or stay — record either way. Record the schema.
+  - [x] **2c — The insert call site(s).** ⚠️ Matches end in TWO places since story 2.6: the `selectStat` ending (`matchHandlers.ts`, the `result.state.result` branch) and the disconnect forfeit (`matchHandlers.ts`, `case 'forfeit'`). Decide: one shared helper `persistFinishedMatch(entry, finalState)` called from both sites. On the forfeit path it MUST use the local `forfeited` state (not `entry.state`) and run BEFORE `deleteMatch`. Record.
+  - [x] **2d — Fire-and-forget shape.** The insert must never block or crash the emit (AC2). Decide: `void persistFinishedMatch(...).catch(...)` with a `console.error` including the matchId, or an internal try/catch in the helper. Record.
+  - [x] **2e — Winner nickname resolution.** The row stores nicknames, the state stores playerIds. Map `finalState.result.winner` → nickname via `entry.players`. Decide what happens if the lookup fails (should be impossible): log + skip the write vs insert with a placeholder. Record.
+  - [x] **2f — Test strategy for SQL.** Decide: pure mapping helper (entry+state → row object) unit-tested without a DB; the live insert verified by the Task 7 smoke against local Postgres. No mocked-pg theater. Constraint: unit tests must never import `pool.ts`; keep the `pg.Pool` connection-lazy. Record.
+  - [x] **2g — Schema details.** Decide the `id` column type (identity/serial vs uuid) and confirm `end_reason` is TEXT storing the engine `EndReason` strings (`'allCards' | 'roundCap' | 'forfeit'`) verbatim, so story 3.2 reads them back without translation. Record.
 
-- [ ] **Task 3: Database setup (AC: 1)** — `packages/server`
-  - [ ] Local Postgres via Homebrew (`brew install postgresql@17`, `brew services start postgresql@17`) and create the dev database (e.g. `createdb card_clash_dev`). Document the exact commands in the root `README.md`.
-  - [ ] Add deps to `packages/server`: `pg` (^8.22), `zod` (^4, matching the engine — it is NOT currently a server dependency), `node-pg-migrate` (^8.0.4 — NOT the 9.0 alpha), plus the 2a loader choice (e.g. `dotenv`).
-  - [ ] Root `.env.example` (committed): `DATABASE_URL=postgres://localhost:5432/card_clash_dev` (+ `PORT`/`CLIENT_ORIGIN` per decision 2b). `.env` is already gitignored.
-  - [ ] `packages/server/src/db/migrations/` + npm script `migrate` wired to node-pg-migrate. First migration creates `matches` exactly per AC1 (snake_case, `id` PK, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`), plus index `idx_matches_created_at` (story 3.2 will read newest-first).
+- [x] **Task 3: Database setup (AC: 1)** — `packages/server`
+  - [x] Local Postgres via Homebrew (`brew install postgresql@17`, `brew services start postgresql@17`) and create the dev database (e.g. `createdb card_clash_dev`). Document the exact commands in the root `README.md`.
+  - [x] Add deps to `packages/server`: `pg` (^8.22), `zod` (^4, matching the engine — it is NOT currently a server dependency), `node-pg-migrate` (^8.0.4 — NOT the 9.0 alpha), plus the 2a loader choice (e.g. `dotenv`).
+  - [x] Root `.env.example` (committed): `DATABASE_URL=postgres://localhost:5432/card_clash_dev` (+ `PORT`/`CLIENT_ORIGIN` per decision 2b). `.env` is already gitignored.
+  - [x] `packages/server/src/db/migrations/` + npm script `migrate` wired to node-pg-migrate. First migration creates `matches` exactly per AC1 (snake_case, `id` PK, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`), plus index `idx_matches_created_at` (story 3.2 will read newest-first).
 
-- [ ] **Task 4: The db layer (AC: 2, 3)** — `packages/server/src/db/`
-  - [ ] `pool.ts` — creates the `pg.Pool` from the validated env. The ONLY file importing `pg`.
-  - [ ] `matchRepository.ts` — `insert(record)` with hand-written parameterized SQL (`INSERT INTO matches (...) VALUES ($1…$5)`). The ONLY file containing SQL. snake_case stays inside this file.
-  - [ ] Pure mapping helper (e.g. `toMatchRecord(entry, finalState)`) — extracts `playerOneNickname`, `playerTwoNickname`, `winnerNickname`, `endReason`, `roundsPlayed`. No I/O, unit-testable (2f).
+- [x] **Task 4: The db layer (AC: 2, 3)** — `packages/server/src/db/`
+  - [x] `pool.ts` — creates the `pg.Pool` from the validated env. The ONLY file importing `pg`.
+  - [x] `matchRepository.ts` — `insert(record)` with hand-written parameterized SQL (`INSERT INTO matches (...) VALUES ($1…$5)`). The ONLY file containing SQL. snake_case stays inside this file.
+  - [x] Pure mapping helper (e.g. `toMatchRecord(entry, finalState)`) — extracts `playerOneNickname`, `playerTwoNickname`, `winnerNickname`, `endReason`, `roundsPlayed`. No I/O, unit-testable (2f).
 
-- [ ] **Task 5: Hook both ending sites (AC: 2)** — `packages/server/src/sockets/matchHandlers.ts`
-  - [ ] `selectStat` end branch: after `endMatch(...)`, fire-and-forget `persistFinishedMatch(entry, result.state)`. Emit order unchanged.
-  - [ ] Disconnect `forfeit` branch: after building the `forfeited` state and emitting, fire-and-forget `persistFinishedMatch(entry, forfeited)` BEFORE `deleteMatch(entry.matchId)`. The defensive `else` branch (null-state forfeit) has no result — do NOT persist a row there.
-  - [ ] DB down → both paths still emit `match:ended`, server stays alive, one `console.error` with matchId (AC2).
+- [x] **Task 5: Hook both ending sites (AC: 2)** — `packages/server/src/sockets/matchHandlers.ts`
+  - [x] `selectStat` end branch: after `endMatch(...)`, fire-and-forget `persistFinishedMatch(entry, result.state)`. Emit order unchanged.
+  - [x] Disconnect `forfeit` branch: after building the `forfeited` state and emitting, fire-and-forget `persistFinishedMatch(entry, forfeited)` BEFORE `deleteMatch(entry.matchId)`. The defensive `else` branch (null-state forfeit) has no result — do NOT persist a row there.
+  - [x] DB down → both paths still emit `match:ended`, server stays alive, one `console.error` with matchId (AC2).
 
-- [ ] **Task 6: Tests**
-  - [ ] Unit: `toMatchRecord` maps a finished entry+state to the camelCase record (both a rules ending and a forfeit ending; winner nickname resolved from players).
-  - [ ] Unit: config schema — missing/invalid `DATABASE_URL` rejects, valid URL passes.
-  - [ ] Unit: the AC2 failure path — an insert rejection logs (with matchId) and does not throw or affect the emit (retro lesson: error states need a test, not just a smoke).
-  - [ ] Client render tests from Task 1 green in `npm test`.
-  - [ ] Full suite green (baseline 162 tests), `npm run typecheck`, `npm run lint`, `npm run format`.
+- [x] **Task 6: Tests**
+  - [x] Unit: `toMatchRecord` maps a finished entry+state to the camelCase record (both a rules ending and a forfeit ending; winner nickname resolved from players).
+  - [x] Unit: config schema — missing/invalid `DATABASE_URL` rejects, valid URL passes.
+  - [x] Unit: the AC2 failure path — an insert rejection logs (with matchId) and does not throw or affect the emit (retro lesson: error states need a test, not just a smoke).
+  - [x] Client render tests from Task 1 green in `npm test`.
+  - [x] Full suite green (baseline 162 tests), `npm run typecheck`, `npm run lint`, `npm run format`.
 
-- [ ] **Task 7: Prove it (AC: all)**
-  - [ ] Fresh DB → `npm run migrate` → `\d matches` in psql shows the AC1 columns.
-  - [ ] Play a match to a rules ending → one row appears with correct nicknames/winner/reason/rounds. (Note: the 2.6 socket smoke was an ad-hoc scratchpad script, not a committed artifact — re-script it or verify manually with two tabs.)
-  - [ ] Force a forfeit (close one client mid-match) → a row with `end_reason = 'forfeit'` appears; match still evicted.
-  - [ ] Stop Postgres → end a match → survivor still gets `match:ended`; server logs the failure with matchId; no crash.
-  - [ ] Commit on `story/3.1`, push, PR, `bmad-code-review`, merge per D23.
+- [x] **Task 7: Prove it (AC: all)**
+  - [x] Fresh DB → `npm run migrate` → `\d matches` in psql shows the AC1 columns.
+  - [x] Play a match to a rules ending → one row appears with correct nicknames/winner/reason/rounds. (Note: the 2.6 socket smoke was an ad-hoc scratchpad script, not a committed artifact — re-script it or verify manually with two tabs.)
+  - [x] Force a forfeit (close one client mid-match) → a row with `end_reason = 'forfeit'` appears; match still evicted.
+  - [x] Stop Postgres → end a match → survivor still gets `match:ended`; server logs the failure with matchId; no crash.
+  - [x] Commit on `story/3.1`, push, PR, `bmad-code-review`, merge per D23.
 
 ## Dev Notes
 
@@ -130,15 +134,51 @@ claude-fable-5
 
 ### Debug Log References
 
+- One flaky run observed right after `npm run format` (1/176 failed, not reproducible in 5 consecutive clean runs afterward). Suspected transient prettier/vitest interaction, not a product bug.
+- New render-test infra immediately caught a real infra gap: Testing Library auto-cleanup needs vitest `globals: true`, otherwise DOM leaks between tests (fixed in client vite config).
+
 ### Completion Notes List
 
-Decisions (fill at implementation):
-- 2a — env loading (server process + migrate script, root `.env`):
-- 2b — config.ts zod schema; PORT/CLIENT_ORIGIN in or out:
-- 2c — insert call sites / shared helper:
-- 2d — fire-and-forget shape:
-- 2e — winner nickname resolution + failure behavior:
-- 2f — SQL test strategy (no pool.ts imports in unit tests):
-- 2g — id column type; end_reason as verbatim EndReason TEXT:
+Decisions:
+- 2a — env loading: `.env` + `.env.example` at the repo ROOT (architecture). Server: `dotenv` (dependency) loaded inside `loadConfig()` with an explicit path resolved from the file location (`new URL('../../../.env', import.meta.url)`) — works from any cwd, same depth from `src/` and `dist/`. Migrations: `node-pg-migrate --envPath ../../.env` (flag confirmed in CLI). No tsx flag-threading needed.
+- 2b — `src/config.ts` with `configSchema = z.object({ DATABASE_URL: z.url() })`; `loadConfig()` is called from the `server.ts` entry (fail fast) and memoized — never at module import time. PORT/CLIENT_ORIGIN stay hardcoded constants: folding them in would make `app.ts` (imported by supertest tests) require a `.env`, breaking tests on machines without one. Recorded as rejected.
+- 2c — one shared helper `persistFinishedMatch(entry, finalState)` in `db/persistFinishedMatch.ts`, called from both ending sites. Forfeit path passes the local `forfeited` state and runs before `deleteMatch`. The defensive null-state branch persists nothing.
+- 2d — the helper is synchronous void: builds the record, then `void insert(record).catch(err => console.error('[db] match <id>: failed to persist result', err))`. Callers cannot be blocked and no rejection can escape.
+- 2e — winner resolved via `entry.players.find(p => p.playerId === result.winner)`. Any incomplete data (no result, missing players, unknown winner) → `toMatchRecord` returns null → helper logs with matchId and skips the write. No placeholder rows.
+- 2f — pure `toMatchRecord` unit-tested (4 tests); `persistFinishedMatch` unit-tested with an injected insert (3 tests, incl. the AC2 rejection path asserting the matchId log). `pool.ts` is lazy (no side effects at import; `pg.Pool` created on first use) and no unit test imports it. Live SQL proven by the Task 7 smoke.
+- 2g — `id BIGINT GENERATED ALWAYS AS IDENTITY`; `end_reason TEXT` storing `EndReason` verbatim (`allCards`/`roundCap`/`forfeit`), confirmed in the smoke (db value === emitted reason).
+- Deviation: reused the already-installed, already-running Homebrew `postgresql@14` instead of installing `postgresql@17` (spec's example). Nothing new was installed on the machine; README documents the generic setup.
+
+Verification:
+- TDD: 10 new server tests written first (red), then implementation (green); +4 client render tests. Suite: 162 → 176, lint green (root ESLint), typecheck clean.
+- Root ESLint immediately caught 3 pre-existing errors (2× `catch (err: any)`, 1× `set-state-in-effect` in CardView) — all fixed; CardView art fallback rewritten as derived state, no effect.
+- AC1: migration run against local Postgres; `\d matches` matches the spec column-for-column, incl. `idx_matches_created_at`.
+- AC2 live smoke (scripted server + two socket clients + pg): full 100-round match → row (players Luffy/Zoro, reason `roundCap`, winner valid, TIMESTAMPTZ); mid-match disconnect → row with `end_reason='forfeit'`, winner = survivor; server restarted with a dead `DATABASE_URL` → match still ended (`allCards`), no row, exactly one `[db] match <id>: failed to persist result` log, server stayed alive.
+- AC3: SQL only in `matchRepository.ts`; `pg` imported only by `pool.ts` (and typed via `@types/pg` devDep).
+
+### Change Log
+
+- 2026-07-16 — Story 3.1 implemented. Epic 3 prep: root ESLint (promoted from client config; 3 pre-existing errors fixed) + client jsdom/RTL test infra (4 deferred render tests landed). DB: root `.env`, zod-validated `config.ts`, `pool.ts`, `matchRepository.ts`, `toMatchRecord`, `persistFinishedMatch`, SQL migration for `matches`, hooks at both match-ending sites. Tests 162 → 176.
 
 ### File List
+
+- eslint.config.js (new, root — promoted from packages/client/eslint.config.js, which was deleted)
+- package.json (modified — `lint` script, eslint devDeps)
+- .env.example (new, root) / .env (local, gitignored)
+- README.md (modified — stack line, Local database section)
+- packages/client/package.json (modified — eslint devDeps removed; jsdom, @testing-library/react, @testing-library/dom added; lint script removed)
+- packages/client/vite.config.ts (modified — vitest jsdom + globals)
+- packages/client/src/components/ResultView.test.tsx (new)
+- packages/client/src/components/CardView.test.tsx (new)
+- packages/client/src/components/CardView.tsx (modified — lint fix: art fallback as derived state, effect removed)
+- packages/client/src/components/HomeScreen.tsx (modified — lint fix: typed catch)
+- packages/client/src/components/JoinScreen.tsx (modified — lint fix: typed catch)
+- packages/server/package.json (modified — pg, zod, dotenv deps; node-pg-migrate, @types/pg devDeps; migrate scripts)
+- packages/server/src/config.ts (new) + config.test.ts (new)
+- packages/server/src/server.ts (modified — fail-fast loadConfig)
+- packages/server/src/db/pool.ts (new)
+- packages/server/src/db/matchRecord.ts (new) + matchRecord.test.ts (new)
+- packages/server/src/db/matchRepository.ts (new)
+- packages/server/src/db/persistFinishedMatch.ts (new) + persistFinishedMatch.test.ts (new)
+- packages/server/src/db/migrations/1784222118074_create-matches-table.sql (new)
+- packages/server/src/sockets/matchHandlers.ts (modified — persist hooks at both ending sites)

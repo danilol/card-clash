@@ -65,8 +65,8 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
         token: ack.token,
       };
       dispatch({ type: 'match/joined', ...joinMatchPayload });
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
