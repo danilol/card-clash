@@ -71,3 +71,8 @@
 - The `matches` table stores no `match_id` and identifies players by nickname only (AC1's v1 column list; NFR5 = no accounts). Consequences accepted for v1: rows can't be correlated with server logs or deduplicated, and two players with the same nickname make `winner_nickname` ambiguous. Revisit when the schema next evolves (3.2+ or accounts).
 - No graceful shutdown: `pool.end()` is never called, so an insert in flight during a server stop is silently lost. Belongs to the deployment story (NFR6) alongside signal handling.
 - CardView art that failed twice stays on the fallback for the whole session (failure map is per-card, never reset). Cosmetic, accepted in the 3.1 review; a per-appearance retry would need effect-style state sync again.
+
+## Deferred from: code review of 3-2-recent-matches-on-the-home-screen (2026-07-16)
+
+- Hardcoded `http://localhost:3000` API origin is now in three client places (HomeScreen create fetch, `socket.ts`, RecentMatches fetch). Works for the local-dev deployment shape; replace with one `VITE_API_URL`-style base (or relative paths + proxy) when the NFR6 remote-host deployment story lands.
+- `RecentMatch` wire type is declared in the server db layer and mirrored in the client (client cannot import the server package). Move REST payload types into the engine protocol package (the established home for shared wire types) on the next protocol touch.

@@ -10,6 +10,7 @@ import type { RecentMatch } from '../db/matchRecord.js';
 vi.mock('../db/matchRepository.js', () => ({
   findRecent: vi.fn(),
   insertMatch: vi.fn(),
+  RECENT_MATCHES_LIMIT: 20,
 }));
 
 describe('POST /api/matches', () => {
@@ -101,7 +102,11 @@ describe('GET /api/matches/recent (story 3.2)', () => {
       code: 'DB_UNAVAILABLE',
       message: expect.any(String),
     });
-    expect(errorSpy.mock.calls[0].join(' ')).toContain('recent matches');
+    expect(
+      errorSpy.mock.calls.some((call) =>
+        call.join(' ').includes('recent matches'),
+      ),
+    ).toBe(true);
     errorSpy.mockRestore();
   });
 });

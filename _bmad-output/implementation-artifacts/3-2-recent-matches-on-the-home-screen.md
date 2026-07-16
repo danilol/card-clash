@@ -4,7 +4,7 @@ baseline_commit: abb62220f7c40f7a50c2271304977632f186e684
 
 # Story 3.2: Recent matches on the home screen
 
-Status: review
+Status: done
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts. -->
@@ -66,6 +66,21 @@ so that bragging rights are public record.
   - [x] `npm run dev` → home screen shows the list under the create form.
   - [x] Stop Postgres (or dead `DATABASE_URL` server run) → home screen still lets you create a match; the list area shows the small failure line; server logs one `[db]` line, no crash.
   - [x] Commit on `story/3.2`, push, PR, `bmad-code-review`, merge per D23. This closes Epic 3.
+
+### Review Findings
+
+Code review 2026-07-16 (three parallel layers; auditor verdict: all 3 ACs, all constraints, all scope guards satisfied, zero violations). Triage: 6 patch, 2 defer, rest dismissed with evidence.
+
+- [x] [Review][Patch] A 200 response with a non-array body reached `.map` — an uncaught render throw would unmount the whole app, create form included (found independently by two layers) [RecentMatches.tsx] — fixed: `Array.isArray` guard routes it into the error line + render test.
+- [x] [Review][Patch] No loading state and no fetch timeout — a hung request left the section silently blank forever [RecentMatches.tsx] — fixed: "Loading…" branch + `AbortSignal.timeout(5000)`.
+- [x] [Review][Patch] `connectionTimeoutMillis` bounds only connection setup; an established-but-hung query still parked requests forever [pool.ts] — fixed: `query_timeout: 5000`.
+- [x] [Review][Patch] `vi.mock` factory omitted `RECENT_MATCHES_LIMIT` — a future importer would get `undefined` only under test [routes/matches.test.ts] — fixed.
+- [x] [Review][Patch] Log assertion read `errorSpy.mock.calls[0]` — order-dependent [routes/matches.test.ts] — fixed: any-call matcher.
+- [x] [Review][Patch] Stale "snake_case lives here" comment after the mapper moved to matchRecord.ts [matchRepository.ts] — reworded to "the db layer".
+- [x] [Review][Defer] Hardcoded `http://localhost:3000` origin (3rd instance of the pre-existing client convention) — fix with one API-base config when the NFR6 deployment story lands; deferred-work.md.
+- [x] [Review][Defer] `RecentMatch` type duplicated client/server — move REST payload types into the engine protocol package on the next protocol touch; deferred-work.md.
+
+Dismissed with evidence: CORS on the new GET (app-wide `cors({ origin: 5173 })` in `app.ts`, proven by the live smoke); draws/winnerless rows (engine `MatchResult.winner` non-nullable, cap ties → sudden death); `Number(row.id)` precision (recorded 1b decision; identity ids can't approach 2^53 here); `created_at` timezone shift (column is TIMESTAMPTZ per the 3.1 migration); no-retry error state (v1 scope guard).
 
 ## Dev Notes
 
@@ -144,6 +159,7 @@ Verification:
 ### Change Log
 
 - 2026-07-16 — Story 3.2 implemented (last story of the v1 plan). Server: `findRecent` + `rowToRecentMatch` + `GET /api/matches/recent` with DB_UNAVAILABLE handling. Client: `RecentMatches` component (list/empty/error states), shared `reasonLabels.ts` (second-person vs neutral maps), HomeScreen renders the list. Tests 178 → 186.
+- 2026-07-16 — Addressed code review findings: 6 patches (non-array body guard, loading state + fetch timeout, pool query_timeout, mock completeness, order-independent log assertion, comment fix), 2 deferred. Tests 186 → 187. Story → done; Epic 3 and the v1 plan complete.
 
 ### File List
 

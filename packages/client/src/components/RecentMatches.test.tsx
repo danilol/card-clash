@@ -46,6 +46,14 @@ describe('RecentMatches (story 3.2)', () => {
     ).toBeTruthy();
   });
 
+  it('treats a 200 with a non-array body as a failure, not data (review)', async () => {
+    stubFetch(async () => new Response(JSON.stringify({ nope: true })));
+    render(<RecentMatches />);
+    expect(
+      await screen.findByText(/Could not load recent matches/),
+    ).toBeTruthy();
+  });
+
   it('treats a non-200 response as a failure, not data', async () => {
     stubFetch(
       async () =>

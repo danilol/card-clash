@@ -9,7 +9,7 @@ import {
 export const RECENT_MATCHES_LIMIT = 20;
 
 // The ONLY file that contains SQL (architecture: data boundary).
-// snake_case lives here and never leaks past this module.
+// snake_case never leaks past the db layer (mapping lives in matchRecord.ts).
 export async function insertMatch(record: MatchRecord): Promise<void> {
   await getPool().query(
     `INSERT INTO matches
