@@ -18,7 +18,14 @@ export function persistFinishedMatch(
     );
     return;
   }
-  void insert(record).catch((err) => {
-    console.error(`[db] match ${entry.matchId}: failed to persist result`, err);
-  });
+  // Promise.resolve().then(...) also catches a synchronously-throwing insert,
+  // keeping the never-throws contract airtight.
+  void Promise.resolve()
+    .then(() => insert(record))
+    .catch((err) => {
+      console.error(
+        `[db] match ${entry.matchId}: failed to persist result`,
+        err,
+      );
+    });
 }

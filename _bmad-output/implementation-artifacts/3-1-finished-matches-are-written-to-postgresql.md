@@ -4,7 +4,7 @@ baseline_commit: 6b294dd3ffad5657dbd2e4c92c57f3b52b8439a9
 
 # Story 3.1: Finished matches are written to PostgreSQL
 
-Status: review
+Status: done
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts. -->
@@ -78,6 +78,24 @@ so that results outlive the server process.
   - [x] Force a forfeit (close one client mid-match) → a row with `end_reason = 'forfeit'` appears; match still evicted.
   - [x] Stop Postgres → end a match → survivor still gets `match:ended`; server logs the failure with matchId; no crash.
   - [x] Commit on `story/3.1`, push, PR, `bmad-code-review`, merge per D23.
+
+### Review Findings
+
+Code review 2026-07-16 (three parallel layers; auditor verdict: all 3 ACs, all boundaries, scope guards, and retro items satisfied — it independently re-ran lint/typecheck/tests). Triage of 21 raw findings: 8 patch, 3 defer, 6 dismissed with evidence, plus recorded deviations.
+
+- [x] [Review][Patch] Unhandled `pg.Pool` 'error' event (idle client drop) would crash the whole server [packages/server/src/db/pool.ts] — fixed: 'error' listener logs instead.
+- [x] [Review][Patch] No connection timeout: a packet-dropping DB host queues inserts forever and the AC2 log never fires [pool.ts] — fixed: `connectionTimeoutMillis: 5000`.
+- [x] [Review][Patch] `DATABASE_URL` accepted any URL scheme; an `https://` value passed startup and failed at runtime [config.ts] — fixed: `z.url({ protocol: /^postgres(ql)?$/ })` + 2 tests.
+- [x] [Review][Patch] A synchronously-throwing insert could escape the never-throws contract [persistFinishedMatch.ts] — fixed: `Promise.resolve().then(...)` wrapper.
+- [x] [Review][Patch] `MatchRecord.endReason` widened the engine union to `string` [matchRecord.ts] — fixed: typed as `EndReason`.
+- [x] [Review][Patch] Empty `Error.message` rendered as no visible error at all [HomeScreen.tsx, JoinScreen.tsx] — fixed: falls back to 'Something went wrong'.
+- [x] [Review][Patch] Unescaped `new RegExp(def.label)` in the CardView test breaks on labels with metacharacters — fixed: escaped.
+- [x] [Review][Patch] Two comments overstated ordering guarantees (server.ts "fail fast here" vs ESM import hoisting) — fixed: reworded.
+- [x] [Review][Defer] No `match_id` column / nickname-only rows (dedup + duplicate-nickname ambiguity) — v1 schema per AC1; deferred-work.md.
+- [x] [Review][Defer] No `pool.end()` graceful shutdown — belongs to the deployment story (NFR6); deferred-work.md.
+- [x] [Review][Defer] CardView art stays downgraded for the session after two load failures — cosmetic, accepted; deferred-work.md.
+
+Dismissed with evidence: `instanceof Error` "regression" (both screens throw locally-built Errors; nothing crosses serialization); winnerless round-cap endings (engine `MatchResult.winner` is non-nullable; cap ties → sudden death since 1.7); duplicate forfeit row (status `ended` resolves to `opponentLeft`, handlers don't interleave); `ENV_PATH` under `dist/` (same depth); untested `loadConfig` cache (schema unit-tested, startup smoke covers the rest); `insertMatch` vs spec's `insert` naming (recorded deviation, behavior identical). Also recorded: unit tests reach `pool.ts` only transitively and it stays side-effect-free (lazy), which is the actual intent of decision 2f.
 
 ## Dev Notes
 
@@ -159,6 +177,7 @@ Verification:
 ### Change Log
 
 - 2026-07-16 — Story 3.1 implemented. Epic 3 prep: root ESLint (promoted from client config; 3 pre-existing errors fixed) + client jsdom/RTL test infra (4 deferred render tests landed). DB: root `.env`, zod-validated `config.ts`, `pool.ts`, `matchRepository.ts`, `toMatchRecord`, `persistFinishedMatch`, SQL migration for `matches`, hooks at both match-ending sites. Tests 162 → 176.
+- 2026-07-16 — Addressed code review findings: 8 patches (pool error listener + connection timeout, DATABASE_URL scheme check, sync-throw guard, EndReason typing, empty-error-message guard, test regex escape, comment fixes), 3 deferred, 6 dismissed with evidence. Tests 176 → 178. Story → done.
 
 ### File List
 

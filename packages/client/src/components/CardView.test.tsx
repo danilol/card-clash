@@ -17,7 +17,10 @@ describe('CardView (deferred render test, landed in 3.1)', () => {
 
     expect(view.statDefinitions).toHaveLength(8);
     for (const def of view.statDefinitions) {
-      expect(screen.getByText(new RegExp(def.label))).toBeTruthy();
+      // Escape the label — a future label with regex metacharacters must not
+      // break the matcher.
+      const escaped = def.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      expect(screen.getByText(new RegExp(escaped))).toBeTruthy();
     }
   });
 });

@@ -18,4 +18,19 @@ describe('config schema (story 3.1, AC1)', () => {
       false,
     );
   });
+
+  it('rejects a non-postgres scheme (story 3.1 review)', () => {
+    expect(
+      configSchema.safeParse({ DATABASE_URL: 'https://example.com/db' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('accepts the postgresql:// scheme variant', () => {
+    expect(
+      configSchema.safeParse({
+        DATABASE_URL: 'postgresql://localhost:5432/card_clash_dev',
+      }).success,
+    ).toBe(true);
+  });
 });

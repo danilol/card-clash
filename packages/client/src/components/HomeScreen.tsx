@@ -66,7 +66,11 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
       };
       dispatch({ type: 'match/joined', ...joinMatchPayload });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Something went wrong',
+      );
     } finally {
       setIsLoading(false);
     }

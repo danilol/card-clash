@@ -51,7 +51,11 @@ export function JoinScreen({
         token: ack.token,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Something went wrong',
+      );
     } finally {
       setIsLoading(false);
     }

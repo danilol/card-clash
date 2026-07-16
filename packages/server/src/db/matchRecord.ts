@@ -1,11 +1,11 @@
-import type { MatchState } from '@card-clash/engine';
+import type { EndReason, MatchState } from '@card-clash/engine';
 import type { MatchEntry } from '../store/matchStore.js';
 
 export type MatchRecord = {
   playerOneNickname: string;
   playerTwoNickname: string;
   winnerNickname: string;
-  endReason: string;
+  endReason: EndReason;
   roundsPlayed: number;
 };
 

@@ -3,7 +3,9 @@ import { Server } from 'socket.io';
 import { loadConfig } from './config.js';
 import { app } from './app.js';
 
-// Fail fast: an invalid/missing .env stops the server here, at startup (AC1).
+// Fail fast: an invalid/missing .env stops the server before it listens.
+// (ESM evaluates all imports first — safe because no module reads env at
+// import time; pool/config are lazy.)
 loadConfig();
 import type {
   ClientToServerEvents,

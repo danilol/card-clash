@@ -7,7 +7,9 @@ import { z } from 'zod';
 const ENV_PATH = fileURLToPath(new URL('../../../.env', import.meta.url));
 
 export const configSchema = z.object({
-  DATABASE_URL: z.url(),
+  // Scheme is validated too: an https:// URL would pass startup and then
+  // fail on every insert at runtime.
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
 });
 
 export type Config = z.infer<typeof configSchema>;
