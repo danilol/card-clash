@@ -65,7 +65,7 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Make It Count — match history that survives the night
-  epic-3: in-progress
+  epic-3: done
   3-1-finished-matches-are-written-to-postgresql: done
-  3-2-recent-matches-on-the-home-screen: ready-for-dev
+  3-2-recent-matches-on-the-home-screen: done
   epic-3-retrospective: optional

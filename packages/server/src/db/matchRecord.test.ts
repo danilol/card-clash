@@ -6,7 +6,7 @@ import {
   onePieceDeck,
 } from '@card-clash/engine';
 import type { MatchEntry } from '../store/matchStore.js';
-import { toMatchRecord } from './matchRecord.js';
+import { rowToRecentMatch, toMatchRecord } from './matchRecord.js';
 
 const ALICE = {
   playerId: 'p-alice',
@@ -85,5 +85,28 @@ describe('toMatchRecord (story 3.1, decision 2e)', () => {
   it('returns null when the winner is not among the players', () => {
     const state = finishedState('p-stranger', 'roundCap');
     expect(toMatchRecord(makeEntry(state), state)).toBeNull();
+  });
+});
+
+describe('rowToRecentMatch (story 3.2, decision 1b)', () => {
+  it('maps a snake_case row to camelCase with ISO date and numeric id', () => {
+    const row = {
+      id: '42', // pg returns BIGINT as a string
+      player_one_nickname: 'Luffy',
+      player_two_nickname: 'Zoro',
+      winner_nickname: 'Zoro',
+      end_reason: 'forfeit' as const,
+      rounds_played: 7,
+      created_at: new Date('2026-07-16T12:34:56.000Z'),
+    };
+    expect(rowToRecentMatch(row)).toEqual({
+      id: 42,
+      playerOneNickname: 'Luffy',
+      playerTwoNickname: 'Zoro',
+      winnerNickname: 'Zoro',
+      endReason: 'forfeit',
+      roundsPlayed: 7,
+      createdAt: '2026-07-16T12:34:56.000Z',
+    });
   });
 });

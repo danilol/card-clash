@@ -10,8 +10,10 @@ export function getPool(): pg.Pool {
   if (!pool) {
     pool = new pg.Pool({
       connectionString: loadConfig().DATABASE_URL,
-      // A DB host that drops packets must not queue inserts forever (AC2).
+      // A DB host that drops packets must not queue inserts forever (AC2),
+      // and an established-but-hung query must not park requests forever.
       connectionTimeoutMillis: 5000,
+      query_timeout: 5000,
     });
     // pg emits 'error' on the pool when an IDLE client's connection drops
     // (e.g. Postgres restarts). Without a listener that event would crash

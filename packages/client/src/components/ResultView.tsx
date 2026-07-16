@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PlayerView } from '@card-clash/engine';
+import { RESULT_REASON_LABEL } from './reasonLabels';
 
 interface ResultViewProps {
   view: PlayerView;
@@ -7,12 +8,6 @@ interface ResultViewProps {
   rematchPending?: boolean;
   error?: string | null;
 }
-
-const REASON_LABEL: Record<string, string> = {
-  allCards: 'All cards captured',
-  roundCap: 'Round cap reached',
-  forfeit: 'Opponent left — you win',
-};
 
 export function ResultView({
   view,
@@ -32,7 +27,7 @@ export function ResultView({
         {view.result?.winner === view.you ? 'You won!' : 'Opponent won!'}
       </p>
       <p>Rounds played: {view.roundsPlayed}</p>
-      <p>Reason: {reason ? (REASON_LABEL[reason] ?? reason) : ''}</p>
+      <p>Reason: {reason ? (RESULT_REASON_LABEL[reason] ?? reason) : ''}</p>
       {error && <p role="alert">{error}</p>}
       {!opponentGone && (
         <button onClick={onRematch} disabled={rematchPending}>
