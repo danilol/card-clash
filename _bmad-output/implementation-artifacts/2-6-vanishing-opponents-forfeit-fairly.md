@@ -4,7 +4,7 @@ baseline_commit: 15fe76762de587e131ad7655c7226a9d45bcc09c
 
 # Story 2.6: Vanishing opponents forfeit — fairly
 
-Status: review
+Status: done
 
 <!-- Process note (revised 2026-07-16, PRD D23 — supersedes the D18 note that was here):
      AI implements this story fully via bmad-dev-story, including tests, commit, PR, and merge.
@@ -90,6 +90,18 @@ lands the **eviction** that was deferred from 2.5.
   - [x] Confirm the match is **evicted** (a `selectStat`/`rematch` to the dead matchId → `MATCH_NOT_FOUND`).
   - [x] `npm run typecheck` clean; `npm test` green; `npm run format`.
   - [x] Commit on `story/2.6`, push, open PR, run `bmad-code-review` per process.
+
+### Review Findings
+
+Code review 2026-07-16 (three parallel layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor; auditor verdict: all 4 ACs + all architecture constraints satisfied). Triage: 3 patch, 4 defer, 8 dismissed as noise.
+
+- [x] [Review][Patch] `match/ended` did not clear a stale in-match error, which the new ResultView error line would then display [packages/client/src/state/reducer.ts] — fixed: `error: null` on `match/ended` + reducer test.
+- [x] [Review][Patch] Rematch button still offered after forfeit/opponent-left although the match entry is evicted (click → MATCH_NOT_FOUND loop) [packages/client/src/components/ResultView.tsx] — fixed: button hidden when `reason === 'forfeit'` or an error is shown.
+- [x] [Review][Patch] `playing` forfeit with `state: null` would evict silently, stranding the survivor with no event [packages/server/src/sockets/matchHandlers.ts] — fixed: defensive `match:error OPPONENT_LEFT` fallback (invariant makes it unreachable today).
+- [x] [Review][Defer] Never-joined POST matches leak forever (no socketId to clean up by) — deferred, pre-existing; folded into the TTL sweep item in deferred-work.md.
+- [x] [Review][Defer] Forfeited player who silently reconnects is stuck on a dead match screen — deferred; this is the D16 grace-period-reconnect follow-up.
+- [x] [Review][Defer] One socket can join two `waiting` matches; disconnect cleans only the first — deferred, pre-existing join-hardening gap (deferred-work.md).
+- [x] [Review][Defer] In-flight selectStat racing the forfeit shows a stray "Match not found" on the result screen — deferred, cosmetic race (deferred-work.md).
 
 ## Dev Notes
 
@@ -189,6 +201,7 @@ Verification:
 ### Change Log
 
 - 2026-07-16 — Story 2.6 implemented (forfeit on disconnect, ~10s detection, match eviction, opponent-left un-stick on result screen). Engine: `EndReason` += forfeit, `forfeitMatch` helper. Server: ping config, `findMatchBySocketId`/`deleteMatch`, `disconnect` handler + pure `resolveDisconnect`. Protocol: `OPPONENT_LEFT` wire code. Client: forfeit reason label + error line on ResultView. Tests 149 → 161.
+- 2026-07-16 — Addressed code review findings: 3 patches applied (clear error on `match/ended`; hide Rematch when the opponent is gone; defensive fallback emit on null-state forfeit), 4 items deferred to deferred-work.md, 8 dismissed as noise. Tests 161 → 162. Story → done.
 
 ### File List
 
@@ -203,5 +216,8 @@ Verification:
 - packages/server/src/sockets/resolveDisconnect.ts (new)
 - packages/server/src/sockets/resolveDisconnect.test.ts (new)
 - packages/server/src/sockets/matchHandlers.ts (modified — `disconnect` handler)
-- packages/client/src/components/ResultView.tsx (modified — forfeit label, error prop)
+- packages/client/src/components/ResultView.tsx (modified — forfeit label, error prop; review patch: hide Rematch when opponent gone)
 - packages/client/src/App.tsx (modified — pass `state.error` to ResultView)
+- packages/client/src/state/reducer.ts (modified — review patch: clear `error` on `match/ended`)
+- packages/client/src/state/reducer.test.ts (modified — review patch regression test)
+- _bmad-output/implementation-artifacts/deferred-work.md (modified — 4 deferred review findings)

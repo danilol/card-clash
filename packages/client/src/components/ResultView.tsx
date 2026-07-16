@@ -21,6 +21,9 @@ export function ResultView({
   error = null,
 }: ResultViewProps): React.JSX.Element {
   const reason = view.result?.reason;
+  // The match entry is evicted on forfeit and on opponent-left, so a rematch
+  // can no longer succeed — hide the button instead of offering a dead action.
+  const opponentGone = reason === 'forfeit' || error !== null;
   return (
     <div>
       <h1>Result View</h1>
@@ -31,9 +34,11 @@ export function ResultView({
       <p>Rounds played: {view.roundsPlayed}</p>
       <p>Reason: {reason ? (REASON_LABEL[reason] ?? reason) : ''}</p>
       {error && <p role="alert">{error}</p>}
-      <button onClick={onRematch} disabled={rematchPending}>
-        {rematchPending ? 'Waiting for opponent...' : 'Rematch'}
-      </button>
+      {!opponentGone && (
+        <button onClick={onRematch} disabled={rematchPending}>
+          {rematchPending ? 'Waiting for opponent...' : 'Rematch'}
+        </button>
+      )}
     </div>
   );
 }

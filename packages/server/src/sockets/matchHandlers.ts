@@ -198,6 +198,13 @@ export function registerMatchHandlers(
             const forfeited = forfeitMatch(entry.state, resolution.winnerId);
             const view = projectFor(forfeited, resolution.winnerId);
             io.to(resolution.remainingSocketId).emit('match:ended', view);
+          } else {
+            // Defensive: a 'playing' entry always has state, but if that
+            // invariant ever breaks, never evict silently — tell the survivor.
+            io.to(resolution.remainingSocketId).emit('match:error', {
+              code: 'OPPONENT_LEFT',
+              message: 'Opponent left the match',
+            });
           }
           break;
         }

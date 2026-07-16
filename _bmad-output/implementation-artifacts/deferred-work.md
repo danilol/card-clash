@@ -58,3 +58,10 @@
 
 - AC1 eviction (story 2.6 / abandoned-TTL): no `deleteMatch` exists; finished matches stay in the in-memory Map. In tension with the Option-A rematch (which reuses the entry), so eviction needs a different trigger — disconnect cleanup (2.6) and/or an abandoned-match TTL. The literal AC1 "evict after the ended event fires" is unmet until then.
 - One-sided rematch has no exit: if one player accepts and the opponent never does, the accepter is stuck on "Waiting for opponent…" with no decline/timeout. The "opponent left" case lands with disconnect/forfeit (2.6); add a rematch decline/timeout as a small follow-up.
+
+## Deferred from: code review of 2-6-vanishing-opponents-forfeit-fairly (2026-07-16)
+
+- Never-joined matches leak forever: an entry created via `POST /api/matches` whose creator never sends `match:join` has no socketId, so the new disconnect-driven cleanup structurally cannot reach it (`findMatchBySocketId` never matches). Pre-existing since 2.2. Fold into the abandoned-match TTL sweep (same bucket as the both-idle-on-result-screen case).
+- Forfeited player who silently reconnects (blip > ~10s, no page reload) stays stuck on a dead match screen — their own `disconnect` only flips `status`, and every action returns `MATCH_NOT_FOUND` until they reload. Proper handling IS the grace-period reconnect follow-up (decision D16); do not band-aid separately.
+- One socket can join two different `waiting` matches (the `ALREADY_JOINED` guard is per-entry); on disconnect only the first entry found is resolved and the second leaks with a dead socketId. Pre-existing join-hardening gap; fix in the join handler (e.g. reject when `findMatchBySocketId(socket.id)` hits) when touching the lobby next.
+- Cosmetic race: an in-flight `match:selectStat` that loses the race against a forfeit gets `MATCH_NOT_FOUND` back, briefly showing a stray "Match not found" alert on the winner's result screen. Harmless; revisit with reconnect/UX polish.

@@ -94,6 +94,7 @@ export function reducer(state: State, action: Action): State {
         ...state,
         screen: 'result',
         view: action.view,
+        error: null,
         rematchPending: false,
       };
     case 'match/rematchPending':
