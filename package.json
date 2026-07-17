@@ -10,6 +10,7 @@
     "dev": "concurrently --kill-others-on-fail -n server,client -c blue,green \"npm run dev -w @card-clash/server\" \"npm run dev -w @card-clash/client\"",
     "test": "vitest run",
     "test:engine": "vitest run --project @card-clash/engine",
+    "build": "npm run build -w @card-clash/engine && npm run build -w @card-clash/server && npm run build -w @card-clash/client",
     "typecheck": "tsc --noEmit && npm run typecheck --workspaces",
     "lint": "eslint .",
     "format": "prettier --write ."

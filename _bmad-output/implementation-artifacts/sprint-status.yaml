@@ -72,7 +72,7 @@ development_status:
 
   # Epic 4: Ship It — the game on the internet (post-v1, D25)
   epic-4: in-progress
-  4-1-a-real-production-build-and-a-ci-gate: ready-for-dev
+  4-1-a-real-production-build-and-a-ci-gate: done
   4-2-the-server-lives-on-the-internet: backlog
   4-3-the-client-on-the-web-friends-play-over-the-internet: backlog
   epic-4-retrospective: optional

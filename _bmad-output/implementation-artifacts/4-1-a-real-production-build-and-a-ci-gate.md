@@ -1,6 +1,10 @@
+---
+baseline_commit: 88cfabb5f87228e6aed18b6b2360914621cd4c7f
+---
+
 # Story 4.1: A real production build and a CI gate
 
-Status: ready-for-dev
+Status: done
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts. -->
@@ -31,40 +35,55 @@ so that every deploy starts from a proven artifact.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Design decisions BEFORE coding (AC: all) ⚠️ record each in Completion Notes**
-  - [ ] **1a — Engine module resolution (the hard one).** Engine `package.json` currently has `exports/main/types` → `./src/index.ts`; vitest and tsx resolve through it today. Production needs `dist/index.js`. Two candidate shapes — INVESTIGATE at implementation and record the winner with evidence (dev loop unchanged AND built server passes the smoke):
+- [x] **Task 1: Design decisions BEFORE coding (AC: all) ⚠️ record each in Completion Notes**
+  - [x] **1a — Engine module resolution (the hard one).** Engine `package.json` currently has `exports/main/types` → `./src/index.ts`; vitest and tsx resolve through it today. Production needs `dist/index.js`. Two candidate shapes — INVESTIGATE at implementation and record the winner with evidence (dev loop unchanged AND built server passes the smoke):
     - **Option A (preferred, matches architecture "plain tsc"):** conditional exports — `{ ".": { "types": "./src/index.ts", "development": "./src/index.ts", "default": "./dist/index.js" } }`, and DELETE the now-ignored top-level `main`/`types` fields. Dev-loop verification: vitest should need **zero config** — Vite 8's default conditions include the special `development|production`, which resolves to `development` under test. ⚠️ If config IS needed, do NOT set `resolve.conditions: ['development']` — on Vite 8 a user array REPLACES the defaults (breaking other packages); extend instead: `conditions: [...defaultServerConditions, 'development']`. tsx needs `--conditions development` on the server dev script (Node flag passthrough). Proof that A wins: edit an engine source file → a server test sees the change WITHOUT rebuilding (catches the silent-stale-dist failure mode).
     - **Option B (fallback, smallest change):** keep `exports` → src and ship `tsx` in the production image, running TypeScript directly. No resolution changes at all; costs a bigger image and slower boot, and deviates from the architecture's "plain tsc" line (would need an architecture amendment note per its own rule).
-  - [ ] **1b — Test-file exclusion.** Both engine and server tsconfigs `include: ["src"]` with co-located `*.test.ts` — a plain `tsc` build would emit test files (and their vitest imports) into `dist/`. Decide: `tsconfig.build.json` per package (`extends` the package tsconfig, `exclude: ["**/*.test.ts", "**/*.test.tsx"]`) with build scripts using `-p tsconfig.build.json`. Record.
-  - [ ] **1c — Build orchestration.** Root `build` script runs engine → server → client in order (architecture: script-ordered, no TS project references at 3 packages). Client build is untouched (`tsc -b && vite build` exists). Record.
-  - [ ] **1d — Docker shape.** ⚠️ FIRST: `@card-clash/engine` is NOT a declared dependency of the server (server package.json lists only cors/dotenv/express/pg/socket.io/zod) — resolution works today only because workspaces symlink everything into root node_modules. Add `"@card-clash/engine": "*"` to server dependencies (and note the engine's own prod dep `zod` must survive pruning), OR keep the full workspace layout in the image (root package.json + lock + all workspace package.jsons, `npm ci` at root) so the symlink is recreated — decide and record. Multi-stage: build stage (node:24, `npm ci`, build ONLY engine + server: `npm run build -w @card-clash/engine -w @card-clash/server` — do not run the client's vite build in the image) → runtime stage (node:24-slim or alpine — pick and record) with production node_modules (candidate: `npm ci --omit=dev`; record what actually works). `.dockerignore` with nested-safe patterns: `**/node_modules`, `**/dist`, `.git`, `_bmad*`, `.env*` (bare `node_modules` matches only at the context root). The image must NOT contain any `.env` (config injected at runtime — 4.2's concern, but the boundary is set here).
-  - [ ] **1e — Container port/config.** The port is a hardcoded `const port = 3000` (`server.ts:16`); `CLIENT_ORIGIN` is hardcoded in TWO files — `server.ts:17` (Socket.IO CORS) and `app.ts:5` (Express CORS) — per story 3.1 decision 2b (kept out of config on purpose). For a container, decide the minimal change: keep 3000 fixed and EXPOSE it (hosts map ports; simplest, recommended for this story) vs folding the port into `config.ts` now. CLIENT_ORIGIN stays hardcoded (4.3's concern). Whatever is chosen must not make `app.ts` require env at import (the 3.1 constraint). Record.
-  - [ ] **1f — CI workflow shape.** One `.github/workflows/ci.yml`: trigger on `pull_request` + `push` to `main`; pin action majors (`actions/checkout@v4`+, `actions/setup-node@v4`+ with `node-version-file: .nvmrc` and `cache: npm`); steps: `npm ci` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run build` → `docker build` (no push — deploy workflows are 4.2/4.3). Tests need no DB (proven — the suite runs without a `.env`); do NOT add a Postgres service. Record.
-  - [ ] **1g — Making the gate actually block.** A workflow alone does not block merges — that needs branch protection with required status checks on `main`. Set it via `gh api repos/danilol/card-clash/branches/main/protection` (or the repo settings UI) requiring the CI job; record what was set. If the API needs permissions `gh` doesn't have, leave the exact click-path for Danilo in the completion notes instead of silently skipping AC2's "must pass before merge".
+  - [x] **1b — Test-file exclusion.** Both engine and server tsconfigs `include: ["src"]` with co-located `*.test.ts` — a plain `tsc` build would emit test files (and their vitest imports) into `dist/`. Decide: `tsconfig.build.json` per package (`extends` the package tsconfig, `exclude: ["**/*.test.ts", "**/*.test.tsx"]`) with build scripts using `-p tsconfig.build.json`. Record.
+  - [x] **1c — Build orchestration.** Root `build` script runs engine → server → client in order (architecture: script-ordered, no TS project references at 3 packages). Client build is untouched (`tsc -b && vite build` exists). Record.
+  - [x] **1d — Docker shape.** ⚠️ FIRST: `@card-clash/engine` is NOT a declared dependency of the server (server package.json lists only cors/dotenv/express/pg/socket.io/zod) — resolution works today only because workspaces symlink everything into root node_modules. Add `"@card-clash/engine": "*"` to server dependencies (and note the engine's own prod dep `zod` must survive pruning), OR keep the full workspace layout in the image (root package.json + lock + all workspace package.jsons, `npm ci` at root) so the symlink is recreated — decide and record. Multi-stage: build stage (node:24, `npm ci`, build ONLY engine + server: `npm run build -w @card-clash/engine -w @card-clash/server` — do not run the client's vite build in the image) → runtime stage (node:24-slim or alpine — pick and record) with production node_modules (candidate: `npm ci --omit=dev`; record what actually works). `.dockerignore` with nested-safe patterns: `**/node_modules`, `**/dist`, `.git`, `_bmad*`, `.env*` (bare `node_modules` matches only at the context root). The image must NOT contain any `.env` (config injected at runtime — 4.2's concern, but the boundary is set here).
+  - [x] **1e — Container port/config.** The port is a hardcoded `const port = 3000` (`server.ts:16`); `CLIENT_ORIGIN` is hardcoded in TWO files — `server.ts:17` (Socket.IO CORS) and `app.ts:5` (Express CORS) — per story 3.1 decision 2b (kept out of config on purpose). For a container, decide the minimal change: keep 3000 fixed and EXPOSE it (hosts map ports; simplest, recommended for this story) vs folding the port into `config.ts` now. CLIENT_ORIGIN stays hardcoded (4.3's concern). Whatever is chosen must not make `app.ts` require env at import (the 3.1 constraint). Record.
+  - [x] **1f — CI workflow shape.** One `.github/workflows/ci.yml`: trigger on `pull_request` + `push` to `main`; pin action majors (`actions/checkout@v4`+, `actions/setup-node@v4`+ with `node-version-file: .nvmrc` and `cache: npm`); steps: `npm ci` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run build` → `docker build` (no push — deploy workflows are 4.2/4.3). Tests need no DB (proven — the suite runs without a `.env`); do NOT add a Postgres service. Record.
+  - [x] **1g — Making the gate actually block.** A workflow alone does not block merges — that needs branch protection with required status checks on `main`. Set it via `gh api repos/danilol/card-clash/branches/main/protection` (or the repo settings UI) requiring the CI job; record what was set. If the API needs permissions `gh` doesn't have, leave the exact click-path for Danilo in the completion notes instead of silently skipping AC2's "must pass before merge".
 
-- [ ] **Task 2: Engine + server builds (AC: 1)**
-  - [ ] Engine: `tsconfig.build.json`, `build` script, `exports` per decision 1a. Server: same pattern (`build` script → `dist/`).
-  - [ ] Root: `build` script (engine → server → client). `npm run build` from a clean checkout succeeds.
-  - [ ] Prove the dev loop is UNBROKEN: `npm test` green, `npm run dev` works, and an engine source edit is picked up without rebuilding (per 1a evidence).
+- [x] **Task 2: Engine + server builds (AC: 1)**
+  - [x] Engine: `tsconfig.build.json`, `build` script, `exports` per decision 1a. Server: same pattern (`build` script → `dist/`).
+  - [x] Root: `build` script (engine → server → client). `npm run build` from a clean checkout succeeds.
+  - [x] Prove the dev loop is UNBROKEN: `npm test` green, `npm run dev` works, and an engine source edit is picked up without rebuilding (per 1a evidence).
 
-- [ ] **Task 3: Dockerfile (AC: 3)** — repo root (needs workspace context)
-  - [ ] Multi-stage `Dockerfile` per 1d + `.dockerignore`.
-  - [ ] `docker build` succeeds locally; `docker run -p 3000:3000 -e DATABASE_URL=...` serves `/api/health`. ⚠️ Inside the container `localhost` is the container itself — the host's Postgres would be `host.docker.internal` on macOS. But note: this smoke (health + create/join) never touches the DB at all (the pool is lazy; writes only happen at match end), so any zod-valid `DATABASE_URL` passes startup — do NOT claim "Postgres works from the container" unless a match is actually finished through it.
-  - [ ] Socket round-trip against the container (no committed smoke script exists — write a small one; protocol: `POST /api/matches` `{nickname}` → `{matchId}`; two `socket.io-client` connections; `match:join` `{matchId, nickname}` with ack; expect `match:state` on both once the second joins — event contract in `packages/server/src/sockets/matchHandlers.ts`).
+- [x] **Task 3: Dockerfile (AC: 3)** — repo root (needs workspace context)
+  - [x] Multi-stage `Dockerfile` per 1d + `.dockerignore`.
+  - [x] `docker build` succeeds locally; `docker run -p 3000:3000 -e DATABASE_URL=...` serves `/api/health`. ⚠️ Inside the container `localhost` is the container itself — the host's Postgres would be `host.docker.internal` on macOS. But note: this smoke (health + create/join) never touches the DB at all (the pool is lazy; writes only happen at match end), so any zod-valid `DATABASE_URL` passes startup — do NOT claim "Postgres works from the container" unless a match is actually finished through it.
+  - [x] Socket round-trip against the container (no committed smoke script exists — write a small one; protocol: `POST /api/matches` `{nickname}` → `{matchId}`; two `socket.io-client` connections; `match:join` `{matchId, nickname}` with ack; expect `match:state` on both once the second joins — event contract in `packages/server/src/sockets/matchHandlers.ts`).
 
-- [ ] **Task 4: CI workflow (AC: 2)**
-  - [ ] `.github/workflows/ci.yml` per 1f.
-  - [ ] Push the branch → the workflow runs on GitHub and is green end to end (this story's PR is itself the proof).
+- [x] **Task 4: CI workflow (AC: 2)**
+  - [x] `.github/workflows/ci.yml` per 1f.
+  - [x] Push the branch → the workflow runs on GitHub and is green end to end (this story's PR is itself the proof).
 
-- [ ] **Task 5: Tests**
-  - [ ] No new unit tests expected (this story is build infrastructure); the REGRESSION bar is the point: full suite green (baseline 187), lint, typecheck — locally AND in CI.
-  - [ ] Built-output smoke: `node packages/server/dist/server.js` + a scripted match (create/join/one round) against it — proves AC1's "engine imports resolved from built output".
+- [x] **Task 5: Tests**
+  - [x] No new unit tests expected (this story is build infrastructure); the REGRESSION bar is the point: full suite green (baseline 187), lint, typecheck — locally AND in CI.
+  - [x] Built-output smoke: `node packages/server/dist/server.js` + a scripted match (create/join/one round) against it — proves AC1's "engine imports resolved from built output".
 
-- [ ] **Task 6: Prove it (AC: all)**
-  - [ ] Clean-ish verification: `npm run build` → run the dist server → smoke passes → stop.
-  - [ ] Docker: build + run + health + socket smoke (Task 3).
-  - [ ] CI green on the PR (Task 4). README gets a short "Build & CI" section.
-  - [ ] Commit on `story/4.1`, push, PR, `bmad-code-review`, merge per D23.
+- [x] **Task 6: Prove it (AC: all)**
+  - [x] Clean-ish verification: `npm run build` → run the dist server → smoke passes → stop.
+  - [x] Docker: build + run + health + socket smoke (Task 3).
+  - [x] CI green on the PR (Task 4). README gets a short "Build & CI" section.
+  - [x] Commit on `story/4.1`, push, PR, `bmad-code-review`, merge per D23.
+
+### Review Findings
+
+Code review 2026-07-17 (three parallel layers; auditor verdict: all 3 ACs satisfied, verified live — it deleted the dists and re-ran the suite itself; Edge Case Hunter empirically disproved two suspected edges with a dist-marker test and sandbox installs). Triage: 6 patch, 2 defer/4.2-scoped, 7 dismissed with evidence.
+
+- [x] [Review][Patch] Client imports the engine in 8+ files but never declared it as a dependency (verified: `npm ci -w client` creates no engine symlink) [packages/client/package.json] — fixed: `"@card-clash/engine": "*"` added.
+- [x] [Review][Patch] CI built the image but never booted it — a broken CMD/runtime dep would ship green (two layers + auditor's "testimonial evidence" note converged) — fixed: committed `scripts/smoke.mjs` (create/join/one round) + CI step that runs the container, curls health, and plays a round; smoke verified locally against the container.
+- [x] [Review][Patch] `.dockerignore` `.env*` matched only the context root — a future `packages/server/.env` could enter build-stage layers — fixed: `**/.env*` (+ `scripts` excluded from the image context).
+- [x] [Review][Patch] CI workflow had default (write) token permissions and no concurrency control — fixed: `permissions: contents: read` + per-ref concurrency with cancel-in-progress; also added `npx prettier --check .` (verified passing repo-wide first).
+- [x] [Review][Patch] Node major pinned in two unlinked places (.nvmrc vs three Dockerfile FROM lines) — fixed: sync comment in the Dockerfile.
+- [x] [Review][Patch] Ad-hoc server runs (node/tsx/debugger) without `--conditions=development` silently execute stale engine dist — fixed: README warning.
+- [x] [Review][Defer] Migrations + node-pg-migrate are not in the image — INTENTIONAL: the spec assigns "where migrations run in deploy" to story 4.2 (must be decided there, not silently forgotten).
+- [x] [Review][Defer] No Docker layer caching in CI — full run is 1m24s; not worth the complexity yet. Revisit if CI slows.
+
+Dismissed with evidence: missing `outDir` (set in package tsconfigs; container ran); stale-dist client bundles (marker test proved `vite build` resolves src); `exclude` replacement (base configs have no exclude; dist outside include); dropped `main`/`types` node10 fallback (no node10 consumers in the stack); no CI DB service (suite is DB-free by design and green); dangling client symlink in image (verified absent — `npm ci -w server` links engine+server only); unpinned `node:24-slim` (deliberate major pin, now documented).
 
 ## Dev Notes
 
@@ -122,15 +141,44 @@ claude-fable-5
 
 ### Debug Log References
 
+- Docker Desktop was not running; launched via `open -a Docker` (also woke unrelated Supabase containers from Danilo's other project — untouched).
+- First `docker build` took >10 min (base image pull) — subsequent builds are cached and fast.
+
 ### Completion Notes List
 
-Decisions (fill at implementation):
-- 1a — engine resolution (A conditional exports vs B tsx-in-image), with dev-loop evidence:
-- 1b — tsconfig.build.json test exclusion:
-- 1c — build orchestration:
-- 1d — Docker stages/base image/pruning; engine-dependency declaration:
-- 1e — port/EXPOSE handling:
-- 1f — CI workflow shape/cache:
-- 1g — branch protection (set via gh, or click-path left for Danilo):
+Decisions:
+- 1a — **Option A won, with the strongest possible evidence:** conditional exports (`types`/`development` → `src/index.ts`, `default` → `dist/index.js`; top-level `main`/`types` deleted). Vitest needed ZERO config — the full 187-test suite passed with `dist/` deleted entirely, which proves dev resolution uses `src` (nothing else existed to resolve to). tsx dev script gained `--conditions=development` and was verified to boot with no dist present. The built server then passed the smoke with the engine resolved from `dist`.
+- 1b — `tsconfig.build.json` per package (`extends` package tsconfig, excludes `**/*.test.ts(x)`); build scripts use `-p tsconfig.build.json`. Verified: zero `*.test.js` files in either dist.
+- 1c — root `build` = engine → server → client via `&&`-chained `npm run build -w …`. Client build untouched. Server also gained `start` (`node dist/server.js`).
+- 1d — engine added as a declared server dependency (`"@card-clash/engine": "*"`). Three-stage Dockerfile on `node:24-slim`: build stage (full `npm ci`, builds engine+server only — no vite build in the image), deps stage (`npm ci --omit=dev -w @card-clash/server` — creates the workspace symlink and hoists engine's zod), runtime stage (root+engine+server package.jsons for ESM `"type": "module"` resolution, node_modules, both dists). Image: 368 MB. `.dockerignore` uses nested-safe `**/` patterns; no `.env` can enter the image.
+- 1e — port stays the hardcoded 3000 with `EXPOSE 3000` (hosts map ports); CLIENT_ORIGIN untouched (4.3). `app.ts` still imports without env.
+- 1f — one `ci` job: checkout@v4, setup-node@v4 (`node-version-file: .nvmrc`, `cache: npm`), `npm ci` → lint → typecheck → test → build → `docker build` (no push). No DB service (suite needs none). Job named plain `ci` so a future required-status-check context is a stable string.
+- 1g — **branch protection is blocked by GitHub plan:** the API returned 403 "Upgrade to GitHub Pro or make this repository public". CI runs and reports on every PR, but cannot hard-block merges until Danilo either upgrades or makes the repo public (note: public touches the One Piece IP question, PRD open question Q5). Click-path when decided: repo Settings → Branches → Add branch protection rule for `main` → Require status checks → select `ci`.
+
+Verification:
+- Dev loop: 187 tests green with no dists; `tsx watch --conditions=development` boots with no dists; `npm run dev` unchanged for the client.
+- AC1: `npm run build` clean; `node packages/server/dist/server.js` served health + create/join (16-card deal) + one resolved round — engine `createMatch`/`projectFor`/`applyCommand` all from built output.
+- AC3: `docker build` (368 MB) → `docker run -p 3400:3000 -e DATABASE_URL=…` → health ok + the same socket smoke passed against the container; container removed after.
+- AC2: workflow file in place; the PR for this story is itself the live CI proof (verified green before merge). Blocking enforcement pending the 1g plan decision.
+- Regression gates: lint green, typecheck clean, 187/187 tests, prettier applied.
+- deferred-work.md: the two 1.1 build debts marked resolved.
+
+### Change Log
+
+- 2026-07-17 — Story 4.1 implemented. Real production builds (conditional exports close the 1.1 engine-exports debt; tsconfig.build.json closes the tests-in-dist debt), three-stage 368 MB server Docker image, GitHub Actions CI (lint/typecheck/test/build/docker). Branch protection blocked by GitHub plan — decision left to Danilo (1g).
+- 2026-07-17 — Addressed code review findings: 6 patches (client engine dependency, committed smoke script + CI container-boot step, .dockerignore hardening, CI permissions/concurrency/format-check, Node-version sync comment, README stale-dist warning), 2 deferred. Story → done.
 
 ### File List
+
+- packages/engine/package.json (modified — conditional exports, main/types removed, build script)
+- packages/engine/tsconfig.build.json (new)
+- packages/server/package.json (modified — engine dependency, build/start scripts, dev script `--conditions=development`)
+- packages/server/tsconfig.build.json (new)
+- package.json (modified — root build script)
+- package-lock.json (modified — engine dep)
+- Dockerfile (new) / .dockerignore (new)
+- .github/workflows/ci.yml (new)
+- README.md (modified — Build & CI section)
+- _bmad-output/implementation-artifacts/deferred-work.md (modified — 1.1 items resolved)
+- scripts/smoke.mjs (new — review patch: committed smoke, run by CI against the container)
+- packages/client/package.json (modified — review patch: engine dependency declared)
