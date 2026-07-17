@@ -4,7 +4,7 @@ baseline_commit: 88cfabb5f87228e6aed18b6b2360914621cd4c7f
 
 # Story 4.1: A real production build and a CI gate
 
-Status: review
+Status: done
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts. -->
@@ -69,6 +69,21 @@ so that every deploy starts from a proven artifact.
   - [x] Docker: build + run + health + socket smoke (Task 3).
   - [x] CI green on the PR (Task 4). README gets a short "Build & CI" section.
   - [x] Commit on `story/4.1`, push, PR, `bmad-code-review`, merge per D23.
+
+### Review Findings
+
+Code review 2026-07-17 (three parallel layers; auditor verdict: all 3 ACs satisfied, verified live — it deleted the dists and re-ran the suite itself; Edge Case Hunter empirically disproved two suspected edges with a dist-marker test and sandbox installs). Triage: 6 patch, 2 defer/4.2-scoped, 7 dismissed with evidence.
+
+- [x] [Review][Patch] Client imports the engine in 8+ files but never declared it as a dependency (verified: `npm ci -w client` creates no engine symlink) [packages/client/package.json] — fixed: `"@card-clash/engine": "*"` added.
+- [x] [Review][Patch] CI built the image but never booted it — a broken CMD/runtime dep would ship green (two layers + auditor's "testimonial evidence" note converged) — fixed: committed `scripts/smoke.mjs` (create/join/one round) + CI step that runs the container, curls health, and plays a round; smoke verified locally against the container.
+- [x] [Review][Patch] `.dockerignore` `.env*` matched only the context root — a future `packages/server/.env` could enter build-stage layers — fixed: `**/.env*` (+ `scripts` excluded from the image context).
+- [x] [Review][Patch] CI workflow had default (write) token permissions and no concurrency control — fixed: `permissions: contents: read` + per-ref concurrency with cancel-in-progress; also added `npx prettier --check .` (verified passing repo-wide first).
+- [x] [Review][Patch] Node major pinned in two unlinked places (.nvmrc vs three Dockerfile FROM lines) — fixed: sync comment in the Dockerfile.
+- [x] [Review][Patch] Ad-hoc server runs (node/tsx/debugger) without `--conditions=development` silently execute stale engine dist — fixed: README warning.
+- [x] [Review][Defer] Migrations + node-pg-migrate are not in the image — INTENTIONAL: the spec assigns "where migrations run in deploy" to story 4.2 (must be decided there, not silently forgotten).
+- [x] [Review][Defer] No Docker layer caching in CI — full run is 1m24s; not worth the complexity yet. Revisit if CI slows.
+
+Dismissed with evidence: missing `outDir` (set in package tsconfigs; container ran); stale-dist client bundles (marker test proved `vite build` resolves src); `exclude` replacement (base configs have no exclude; dist outside include); dropped `main`/`types` node10 fallback (no node10 consumers in the stack); no CI DB service (suite is DB-free by design and green); dangling client symlink in image (verified absent — `npm ci -w server` links engine+server only); unpinned `node:24-slim` (deliberate major pin, now documented).
 
 ## Dev Notes
 
@@ -151,6 +166,7 @@ Verification:
 ### Change Log
 
 - 2026-07-17 — Story 4.1 implemented. Real production builds (conditional exports close the 1.1 engine-exports debt; tsconfig.build.json closes the tests-in-dist debt), three-stage 368 MB server Docker image, GitHub Actions CI (lint/typecheck/test/build/docker). Branch protection blocked by GitHub plan — decision left to Danilo (1g).
+- 2026-07-17 — Addressed code review findings: 6 patches (client engine dependency, committed smoke script + CI container-boot step, .dockerignore hardening, CI permissions/concurrency/format-check, Node-version sync comment, README stale-dist warning), 2 deferred. Story → done.
 
 ### File List
 
@@ -164,3 +180,5 @@ Verification:
 - .github/workflows/ci.yml (new)
 - README.md (modified — Build & CI section)
 - _bmad-output/implementation-artifacts/deferred-work.md (modified — 1.1 items resolved)
+- scripts/smoke.mjs (new — review patch: committed smoke, run by CI against the container)
+- packages/client/package.json (modified — review patch: engine dependency declared)

@@ -2,6 +2,9 @@
 # Cloudflare Pages). Both D25 hosts (Cloudflare Containers, Fly.io) consume
 # this same image.
 
+# Node major is pinned in THREE FROM lines below — keep them in sync with
+# each other and with .nvmrc (CI uses .nvmrc via node-version-file).
+
 # --- build: compile engine + server with tsc -------------------------------
 FROM node:24-slim AS build
 WORKDIR /app

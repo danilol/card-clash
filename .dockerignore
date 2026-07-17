@@ -3,4 +3,5 @@
 .git
 .github
 _bmad*
-.env*
+**/.env*
+scripts

@@ -29,6 +29,11 @@ ends normally.
   runs the built server with plain Node.
 - Engine resolution: dev tools (vitest, tsx via `--conditions=development`)
   load `src/`; production Node loads `dist/` (conditional `exports`).
+  ⚠️ Running the server ad-hoc (`node`, `tsx`, an IDE debugger) WITHOUT
+  `--conditions=development` resolves the engine from a possibly stale
+  `dist/` — use `npm run dev`, or pass the flag.
+- `node scripts/smoke.mjs [baseUrl]` — create/join/one-round smoke against
+  any running server (CI runs it against the built container).
 - `docker build -t card-clash-server .` — the server image (engine + server
   only; the client deploys separately). Run:
   `docker run -p 3000:3000 -e DATABASE_URL=... card-clash-server`.
