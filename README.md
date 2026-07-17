@@ -22,6 +22,19 @@ npm run migrate -w @card-clash/server   # creates the matches table
 A DB failure never blocks gameplay — the server logs it and the match still
 ends normally.
 
+## Build & CI
+
+- `npm run build` — engine and server compile with tsc to `dist/` (test files
+  excluded), the client builds with vite. `npm start -w @card-clash/server`
+  runs the built server with plain Node.
+- Engine resolution: dev tools (vitest, tsx via `--conditions=development`)
+  load `src/`; production Node loads `dist/` (conditional `exports`).
+- `docker build -t card-clash-server .` — the server image (engine + server
+  only; the client deploys separately). Run:
+  `docker run -p 3000:3000 -e DATABASE_URL=... card-clash-server`.
+- CI (`.github/workflows/ci.yml`): lint, typecheck, tests, build, and the
+  Docker build run on every PR and push to main.
+
 ## Packages
 
 | Package           | Role                                                                                           |
