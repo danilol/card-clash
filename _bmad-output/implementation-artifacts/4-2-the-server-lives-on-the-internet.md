@@ -1,6 +1,10 @@
+---
+baseline_commit: 281c4e06172e8b8b909c88fd1a677fc9a2863283
+---
+
 # Story 4.2: The server lives on the internet
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts.
