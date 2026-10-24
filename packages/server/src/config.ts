@@ -10,6 +10,9 @@ export const configSchema = z.object({
   // Scheme is validated too: an https:// URL would pass startup and then
   // fail on every insert at runtime.
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  // Render tells the app which port to listen on (story 4.2, 1d); locally
+  // nothing sets it, so the dev port stays 3000.
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
 });
 
 export type Config = z.infer<typeof configSchema>;

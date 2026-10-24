@@ -24,3 +24,13 @@ export function getPool(): pg.Pool {
   }
   return pool;
 }
+
+// Graceful shutdown (story 4.2): drain and close the pool if it was ever
+// created. Safe to call when no pool exists (health-only traffic).
+export async function closePool(): Promise<void> {
+  if (pool) {
+    const p = pool;
+    pool = null;
+    await p.end();
+  }
+}

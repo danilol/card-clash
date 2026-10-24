@@ -24,7 +24,7 @@ export function RecentMatches() {
     let ignore = false;
     (async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/matches/recent', {
+        const res = await fetch('/api/matches/recent', {
           // A hung request must resolve into the error line, not a forever-
           // blank section.
           signal: AbortSignal.timeout(5000),

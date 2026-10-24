@@ -30,6 +30,13 @@ describe('RecentMatches (story 3.2)', () => {
     expect(screen.queryByText(/you win/)).toBeNull();
   });
 
+  it('fetches a relative URL, so it works on any origin (story 4.2)', async () => {
+    stubFetch(async () => new Response('[]'));
+    render(<RecentMatches />);
+    await screen.findByText(/No matches yet/);
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/matches/recent');
+  });
+
   it('renders the friendly empty state on an empty database (AC3)', async () => {
     stubFetch(async () => new Response('[]'));
     render(<RecentMatches />);

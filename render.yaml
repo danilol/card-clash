@@ -1,0 +1,21 @@
+# Render Blueprint (story 4.2, D26): the whole game as ONE free web service.
+# The server runs from the Dockerfile and also serves the built client.
+# Field reference: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: card-clash
+    runtime: docker
+    plan: free
+    # Can't be changed after creation. Frankfurt = closest to Danilo and to
+    # a Neon project in eu-central-1 (Frankfurt).
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    # Deploys come ONLY from .github/workflows/deploy.yml, which migrates
+    # Neon first and then calls this service's deploy hook.
+    autoDeployTrigger: 'off'
+    envVars:
+      # Neon's DIRECT (non-pooler) URL. Entered once in the Render dashboard
+      # when the Blueprint is created — never stored in git.
+      - key: DATABASE_URL
+        sync: false

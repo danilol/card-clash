@@ -34,19 +34,50 @@ ends normally.
   `dist/` — use `npm run dev`, or pass the flag.
 - `node scripts/smoke.mjs [baseUrl]` — create/join/one-round smoke against
   any running server (CI runs it against the built container).
-- `docker build -t card-clash-server .` — the server image (engine + server
-  only; the client deploys separately). Run:
-  `docker run -p 3000:3000 -e DATABASE_URL=... card-clash-server`.
+- `docker build -t card-clash .` — the whole game in one image: the server,
+  which also serves the built client. Run:
+  `docker run -p 3000:3000 -e DATABASE_URL=... card-clash`, then open
+  `http://localhost:3000`.
 - CI (`.github/workflows/ci.yml`): lint, typecheck, tests, build, and the
-  Docker build run on every PR and push to main.
+  Docker build + smoke run on every PR and push to main.
+
+## Deployment
+
+The game runs on **one free Render web service** (decision D26), with the
+database on **Neon** (free). The server serves the website, the REST API and
+Socket.IO from one address, so there is no CORS setup and the client uses
+relative URLs. In dev, Vite proxies `/api` and `/socket.io` to the server
+for the same shape.
+
+| Piece    | Where                                            | Config                                                   |
+| -------- | ------------------------------------------------ | -------------------------------------------------------- |
+| Service  | Render, from `render.yaml` (Blueprint)           | Docker, free plan, Frankfurt, health check `/api/health` |
+| Database | Neon                                             | `DATABASE_URL` — the DIRECT (non-pooler) URL             |
+| Deploy   | `.github/workflows/deploy.yml` on push to `main` | secrets `NEON_DATABASE_URL`, `RENDER_DEPLOY_HOOK_URL`    |
+
+- **How a deploy happens:** a merge to `main` runs `deploy.yml`. It migrates
+  Neon first, then calls the Render deploy hook. Render builds the
+  Dockerfile and switches over once `/api/health` answers. Auto-deploy on
+  Render is off, so a deploy never skips the migration.
+- **Redeploy by hand:** Render dashboard → service → Manual Deploy, or
+  re-run the Deploy workflow in GitHub Actions.
+- **Logs:** Render dashboard → service → Logs. Look for `[db]` and
+  `[shutdown]` lines.
+- **Env vars:** `DATABASE_URL` is set in the Render dashboard (never in git).
+  `PORT` is set by Render itself; locally it defaults to 3000.
+- **Sleep:** the free service sleeps after 15 minutes with no HTTP request
+  and no incoming WebSocket message. The first visitor after that waits
+  about 1 minute. A sleep or redeploy ends matches in progress (no
+  reconnect yet). A connected match keeps the service awake: Socket.IO's
+  ping/pong runs every 5 seconds.
 
 ## Packages
 
 | Package           | Role                                                                                           |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
 | `packages/engine` | Pure, deterministic rules engine — no I/O, zod is its only dependency. The unit-test showcase. |
-| `packages/server` | _(planned, Epic 2)_ Express 5 + Socket.IO; server-authoritative match state                    |
-| `packages/client` | _(planned, Epic 2)_ React 19 SPA rendering per-player projections                              |
+| `packages/server` | Express 5 + Socket.IO; server-authoritative match state; serves the built client in production |
+| `packages/client` | React 19 SPA rendering per-player projections                                                  |
 
 ## Commands
 

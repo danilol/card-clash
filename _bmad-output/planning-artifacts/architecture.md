@@ -203,6 +203,7 @@ implementation story — typed by Danilo, guided not generated.
   per-player projections (step-05 pattern); no payload ever contains
   opponent stack contents or Super Trump location.
 - Basic hardening only: CORS locked to known origin, JSON body limits.
+  (Amended 2026-10-25, D26: production is same-origin, so no CORS config at all.)
   Helmet/rate limiting consciously deferred (private links, two users).
 
 ### API & Communication Patterns
@@ -243,6 +244,13 @@ implementation story — typed by Danilo, guided not generated.
   revisit trigger (v1 playable locally).
 - Config via environment variables with a `.env` file locally (12-factor
   style), so the eventual deploy doesn't force refactoring.
+- **Amended 2026-10-25 (PRD D26) — production shape:** one Render free web
+  service runs the server Docker image; Postgres is Neon. The server ALSO
+  serves the built client, so the website, REST API and Socket.IO share one
+  origin: the client uses relative URLs, and no CORS config is needed. In
+  dev, Vite proxies `/api` and `/socket.io` to the server to keep the same
+  shape. Exactly one instance (in-memory match store). The service sleeps
+  when idle; a restart kills in-flight matches (accepted, as in v1).
 
 ### Decision Impact Analysis
 

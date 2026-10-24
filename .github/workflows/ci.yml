@@ -28,9 +28,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Docker image builds (no push — deploys land in stories 4.2/4.3)
+      - name: Docker image builds (no push — Render builds its own on deploy)
         run: docker build -t card-clash-server:ci .
-      - name: Boot the image and smoke it (health + join + one round)
+      - name: Boot the image and smoke it (page + health + join + one round)
         run: |
           docker run -d --name smoke -p 3000:3000 \
             -e DATABASE_URL=postgres://smoke@localhost:5432/smoke \
@@ -40,5 +40,6 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:3000/api/health || { docker logs smoke; exit 1; }
+          curl -sf http://localhost:3000/ | grep -q '<div id="root">' || { docker logs smoke; exit 1; }
           node scripts/smoke.mjs http://localhost:3000 || { docker logs smoke; exit 1; }
           docker rm -f smoke

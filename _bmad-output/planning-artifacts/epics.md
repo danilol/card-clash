@@ -131,7 +131,7 @@ Finished matches are written to PostgreSQL and surface in a recent-matches list 
 **FRs covered:** FR27, FR28
 
 ### Epic 4: Ship It — the game on the internet (post-v1)
-The whole stack live on the internet so friends can play without Danilo's laptop: GitHub Actions CI, production builds, the server on Cloudflare Containers (Fly.io fallback per D25), Postgres on Neon, the client on Cloudflare Pages. Fulfills NFR6 (no new FRs).
+The whole game live on the internet so friends can play without Danilo's laptop: GitHub Actions CI, production builds, one free Render web service that runs the server AND serves the client (D26, replaces D25's Cloudflare hosting), Postgres on Neon. Fulfills NFR6 (no new FRs).
 **Covers:** NFR6; resolves the deferred deployment decision + the hardcoded API-base debt.
 
 ## Epic 1: The Game's Brain — a provably correct rules engine
@@ -415,7 +415,7 @@ So that bragging rights are public record.
 
 ## Epic 4: Ship It — the game on the internet (post-v1)
 
-Friends play card-clash over the internet without Danilo's machine running. Stack per decision D25: GitHub Actions (CI) · Docker image of the Node/Socket.IO server on Cloudflare Containers (Fly.io as pre-agreed fallback) · Neon Postgres · Cloudflare Pages (client). No new game features — NFR6 plus the deployment-shaped debts from deferred-work.md (hardcoded API base, graceful shutdown).
+Friends play card-clash over the internet without Danilo's machine running. Stack per decisions D25 + D26 (free hosting): GitHub Actions (CI + deploy) · the Docker image on one Render free web service, which runs the Node/Socket.IO server and also serves the built client (Koyeb free as fallback) · Neon Postgres. No new game features — NFR6 plus the deployment-shaped debts from deferred-work.md (hardcoded API base, graceful shutdown).
 
 ### Story 4.1: A real production build and a CI gate
 
@@ -435,34 +435,22 @@ So that every deploy starts from a proven artifact.
 
 **And** a `Dockerfile` exists for the server (workspace-aware, small base image), runnable locally: a container serves the health endpoint and a socket round-trip
 
-### Story 4.2: The server lives on the internet
+### Story 4.2: The game lives on the internet
 
-As a player,
-I want the game server reachable at a public URL,
-So that matches don't depend on anyone's laptop.
-
-**Acceptance Criteria:**
-
-**Given** the Dockerfile from 4.1
-**When** the deploy workflow runs on merge to main
-**Then** the server runs on Cloudflare Containers behind a Worker (spike task first: verify WebSocket + idle/sleep semantics with a live Socket.IO match; if matches die mid-play from container sleep, fall back to Fly.io per D25 without re-planning)
-
-**And** `DATABASE_URL` points at a Neon Postgres (migrations run against it), config comes from real env (no .env in the image), and the container shuts down gracefully (`pool.end()` on SIGTERM — closes the deferred-work item)
-
-**And** a finished match played over the public URL lands in Neon and a `[db]`-style failure never crashes the deployed server
-
-### Story 4.3: The client on the web — friends play over the internet
+_Re-scoped 2026-10-25 (D26): free Render hosting, and the server serves the client, so the old Story 4.3 (client on Cloudflare Pages) is merged here._
 
 As a player,
 I want to open a public web page, create a match, and send the link to a friend anywhere,
-So that we can play for real.
+So that we can play for real without anyone's laptop running.
 
 **Acceptance Criteria:**
 
-**Given** the client build
-**When** it deploys to Cloudflare Pages on merge to main
-**Then** the app is served at a public URL and all API/socket calls use a configurable base (`VITE_API_URL`-style — removes all three hardcoded `localhost:3000` instances; closes the deferred-work item), with CORS on the server locked to the Pages origin via env
+**Given** the Docker image from 4.1, now also containing the built client
+**When** the deploy workflow runs on merge to main
+**Then** Neon migrations run first, then one Render free web service deploys the image, and a single public URL serves the website, the REST API and Socket.IO
 
-**And** two people on different networks complete a full match — create, share link, play, forfeit path, result, rematch — and it appears in the recent-matches list (NFR6 fulfilled, the v1 "first friend match over the internet" trigger completed)
+**And** config comes from real env (`DATABASE_URL`, `PORT`; no .env in the image), the container shuts down gracefully on SIGTERM (`pool.end()` — closes the deferred-work item), and the client uses relative URLs — no hardcoded `localhost:3000` left (closes the deferred-work item)
 
-**And** the README documents the deploy setup and how to run each pipeline
+**And** two people on different networks complete a full match in browsers — create, share link, play, forfeit path, result, rematch — and it appears in the recent-matches list from Neon; a `[db]`-style failure never crashes the deployed server
+
+**And** a connected match that sits idle longer than Render's 15-minute sleep timer still works (else the D26 Koyeb fallback is taken), and the README documents the deploy setup
