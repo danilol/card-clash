@@ -193,3 +193,4 @@ Decisions (fill at implementation):
 - `.env.example` (modified)
 - `README.md` (modified)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (modified)
+- `AGENTS.md`, `CLAUDE.md`, `.agents/skills/{create-plan,load-project-context,record-change}/SKILL.md` (created — agent instructions adapted from QueenZ; added to this PR at Danilo's request)
