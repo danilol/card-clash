@@ -4,7 +4,7 @@ baseline_commit: 281c4e06172e8b8b909c88fd1a677fc9a2863283
 
 # Story 4.2: The game lives on the internet
 
-Status: in-progress — re-scoped 2026-10-25 (D26), awaiting Danilo's approval of this spec
+Status: in-progress — spec approved 2026-10-25; code done, waiting on Danilo's Render steps (Task 6)
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts.
@@ -52,39 +52,39 @@ so that we can play for real without anyone's laptop running.
     2. **Create the service** following the steps the AI gives (see 1b). Then copy the **deploy hook URL** (service → Settings → Deploy Hook) and give it to the AI ONLY via `! gh secret set RENDER_DEPLOY_HOOK_URL` typed in-session, so it never appears in chat.
     3. **Neon:** already done in the WIP commit (migrated; `NEON_DATABASE_URL` repo secret exists since 2026-07-17). Danilo pastes the same URL into the Render service's `DATABASE_URL` env var (dashboard, marked secret). Nothing else needed.
     4. **The real match (AC3):** Danilo plays one full match against a friend on another network, after the deploy works.
-  - [ ] **1b — Service shape.** Prefer a **Blueprint**: a `render.yaml` at the repo root that describes the service as code (reviewable in the PR). Planned fields: `type: web`, `runtime: docker`, `plan: free`, `dockerfilePath: ./Dockerfile`, `healthCheckPath: /api/health`, auto-deploy OFF (deploys come only from our workflow, after migrations), `envVars: DATABASE_URL` with `sync: false` (value set in the dashboard, never in git). Region: the one closest to the Neon project's region. ⚠️ Verify every field name against the live Render Blueprint docs at implementation time — do not trust this list blindly. If Blueprints turn out to be unavailable on the free plan, use the dashboard instead and record the exact settings in the README. Record the choice.
-  - [ ] **1c — Deploy workflow.** Rewrite `.github/workflows/deploy.yml`: trigger `push` to `main` (already gated by branch protection); steps: checkout → setup-node → root `npm ci` → migrate Neon (`npm run migrate -w @card-clash/server` with `DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}` — unchanged from the WIP) → `curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"`. Keep `permissions: contents: read` and `cancel-in-progress: false`. Remove the Cloudflare steps. Note: the hook only STARTS the deploy; the workflow does not wait for it. Post-merge verification (Task 7) covers the rest. Record.
-  - [ ] **1d — PORT.** Render tells the app which port to listen on through the `PORT` env var. Add `PORT` to `configSchema` in `config.ts` as an optional number with default `3000` (`z.coerce.number().int().positive().default(3000)`), and listen on it in `server.ts` (replaces the hardcoded `const port = 3000`). Locally nothing changes. Record.
-  - [ ] **1e — Same origin, no CORS.** In production the page and the server share one address, and in dev the Vite proxy makes it so too. So: remove the `cors` middleware in `app.ts`, remove the `cors` option from the Socket.IO server in `server.ts`, and remove the `cors` dependency. Both `CLIENT_ORIGIN` constants go away. Effect: other websites get no CORS permission at all (deny by default — stricter than before). Update the CORS test in `app.test.ts` to assert that a foreign `Origin` gets NO `Access-Control-Allow-Origin` header. Record.
-  - [ ] **1f — Serving the client.** In `app.ts`, after the API routes: `express.static(<client dist dir>)`. The dir is resolved from the server file's own location (like `ENV_PATH` in `config.ts`), so it works in dev, in `dist/`, and in the image. Only mount it when the dir exists — in dev, Vite serves the page, and the server must still start without a client build. Join links are `/?match=<id>` — the path is `/`, so `index.html` is served by `express.static` with no extra "SPA fallback" route. Unknown `/api/*` paths must still return the JSON 404, not HTML. Record the exact path logic.
+  - [x] **1b — Service shape.** Prefer a **Blueprint**: a `render.yaml` at the repo root that describes the service as code (reviewable in the PR). Planned fields: `type: web`, `runtime: docker`, `plan: free`, `dockerfilePath: ./Dockerfile`, `healthCheckPath: /api/health`, auto-deploy OFF (deploys come only from our workflow, after migrations), `envVars: DATABASE_URL` with `sync: false` (value set in the dashboard, never in git). Region: the one closest to the Neon project's region. ⚠️ Verify every field name against the live Render Blueprint docs at implementation time — do not trust this list blindly. If Blueprints turn out to be unavailable on the free plan, use the dashboard instead and record the exact settings in the README. Record the choice.
+  - [x] **1c — Deploy workflow.** Rewrite `.github/workflows/deploy.yml`: trigger `push` to `main` (already gated by branch protection); steps: checkout → setup-node → root `npm ci` → migrate Neon (`npm run migrate -w @card-clash/server` with `DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}` — unchanged from the WIP) → `curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"`. Keep `permissions: contents: read` and `cancel-in-progress: false`. Remove the Cloudflare steps. Note: the hook only STARTS the deploy; the workflow does not wait for it. Post-merge verification (Task 7) covers the rest. Record.
+  - [x] **1d — PORT.** Render tells the app which port to listen on through the `PORT` env var. Add `PORT` to `configSchema` in `config.ts` as an optional number with default `3000` (`z.coerce.number().int().positive().default(3000)`), and listen on it in `server.ts` (replaces the hardcoded `const port = 3000`). Locally nothing changes. Record.
+  - [x] **1e — Same origin, no CORS.** In production the page and the server share one address, and in dev the Vite proxy makes it so too. So: remove the `cors` middleware in `app.ts`, remove the `cors` option from the Socket.IO server in `server.ts`, and remove the `cors` dependency. Both `CLIENT_ORIGIN` constants go away. Effect: other websites get no CORS permission at all (deny by default — stricter than before). Update the CORS test in `app.test.ts` to assert that a foreign `Origin` gets NO `Access-Control-Allow-Origin` header. Record.
+  - [x] **1f — Serving the client.** In `app.ts`, after the API routes: `express.static(<client dist dir>)`. The dir is resolved from the server file's own location (like `ENV_PATH` in `config.ts`), so it works in dev, in `dist/`, and in the image. Only mount it when the dir exists — in dev, Vite serves the page, and the server must still start without a client build. Join links are `/?match=<id>` — the path is `/`, so `index.html` is served by `express.static` with no extra "SPA fallback" route. Unknown `/api/*` paths must still return the JSON 404, not HTML. Record the exact path logic.
   - [ ] **1g — Sleep check (AC4).** No separate spike: deploy for real, then test. Reason it should pass: Socket.IO's server sends a `ping` every 5s and the client answers with a `pong` — that `pong` is an incoming WebSocket message, which Render counts as activity. Test: open a match with two clients, leave them connected and silent for 20 minutes, then play a round. Also time one cold start (first request after sleep). **If the idle match dies → record evidence and switch to the Koyeb free instance (D26 fallback): same image, same env vars.** Do not sink time into workarounds on Render.
-  - [ ] **1h — Image platform and size.** Render builds the image itself from the Dockerfile on its own amd64 machines — no local build or registry push needed. The client build adds ~4 MB of card images; fine. Record.
-  - [ ] **1i — What goes away.** Delete `deploy/cloudflare/` (Worker glue from the WIP commit). Remove `CLOUDFLARE_API_TOKEN` usage (the repo secret was never created; check with `gh secret list`). Update the Dockerfile header comment (no Cloudflare, no Fly). Record.
+  - [x] **1h — Image platform and size.** Render builds the image itself from the Dockerfile on its own amd64 machines — no local build or registry push needed. The client build adds ~4 MB of card images; fine. Record.
+  - [x] **1i — What goes away.** Delete `deploy/cloudflare/` (Worker glue from the WIP commit). Remove `CLOUDFLARE_API_TOKEN` usage (the repo secret was never created; check with `gh secret list`). Update the Dockerfile header comment (no Cloudflare, no Fly). Record.
 
 - [x] **Task 2: Graceful shutdown (AC: 2)** — done and verified in WIP commit 6e11bf7 (`io.close()` + `closePool()` on SIGTERM/SIGINT, 5s unref'd force-exit timer, clean exit 0 under `docker stop`). Render also sends SIGTERM on redeploy and sleep, so this is still needed. Keep as is.
 
-- [ ] **Task 3: Server — PORT, no CORS, serve the client (AC: 1, 2)** — `packages/server`
-  - [ ] `config.ts`: `PORT` per 1d. Test in `config.test.ts`: default 3000, a valid value is parsed, a non-number is rejected.
-  - [ ] `server.ts`: listen on `loadConfig().PORT`; log the port. Remove the Socket.IO `cors` option (1e).
-  - [ ] `app.ts`: remove `cors` (1e); static serving per 1f.
-  - [ ] Tests (`app.test.ts`, supertest): foreign origin gets no CORS header; with a temp client dir containing an `index.html`, `GET /` and `GET /?match=abc` return it; `GET /api/does-not-exist` still returns JSON 404; `GET /api/health` still 200. Make the client dir injectable (e.g. a small `createApp({ clientDir })` or an exported helper) so the test does not depend on a real build — choose the smallest change and record it.
-  - [ ] `package.json`: drop `cors` and `@types/cors`; `npm install` to update the lockfile.
+- [x] **Task 3: Server — PORT, no CORS, serve the client (AC: 1, 2)** — `packages/server`
+  - [x] `config.ts`: `PORT` per 1d. Test in `config.test.ts`: default 3000, a valid value is parsed, a non-number is rejected.
+  - [x] `server.ts`: listen on `loadConfig().PORT`; log the port. Remove the Socket.IO `cors` option (1e).
+  - [x] `app.ts`: remove `cors` (1e); static serving per 1f.
+  - [x] Tests (`app.test.ts`, supertest): foreign origin gets no CORS header; with a temp client dir containing an `index.html`, `GET /` and `GET /?match=abc` return it; `GET /api/does-not-exist` still returns JSON 404; `GET /api/health` still 200. Make the client dir injectable (e.g. a small `createApp({ clientDir })` or an exported helper) so the test does not depend on a real build — choose the smallest change and record it.
+  - [x] `package.json`: drop `cors` and `@types/cors`; `npm install` to update the lockfile.
 
-- [ ] **Task 4: Client — relative URLs + Vite proxy (AC: 2)** — `packages/client`
-  - [ ] `socket.ts`: `io()` with no URL (connects to the page's own address).
-  - [ ] `HomeScreen.tsx`: `fetch('/api/matches', …)`. `RecentMatches.tsx`: `fetch('/api/matches/recent', …)`. After this, `grep -rn localhost packages/client/src` finds only tests (if any).
-  - [ ] `vite.config.ts`: `server.proxy` for `/api` → `http://localhost:3000`, and `/socket.io` → `http://localhost:3000` with `ws: true`.
-  - [ ] Update any test that asserts the old absolute URLs (`RecentMatches.test.tsx` mocks `fetch`).
-  - [ ] Live check: `npm run dev`, play one round in two browser tabs at `http://localhost:5173`.
+- [x] **Task 4: Client — relative URLs + Vite proxy (AC: 2)** — `packages/client`
+  - [x] `socket.ts`: `io()` with no URL (connects to the page's own address).
+  - [x] `HomeScreen.tsx`: `fetch('/api/matches', …)`. `RecentMatches.tsx`: `fetch('/api/matches/recent', …)`. After this, `grep -rn localhost packages/client/src` finds only tests (if any).
+  - [x] `vite.config.ts`: `server.proxy` for `/api` → `http://localhost:3000`, and `/socket.io` → `http://localhost:3000` with `ws: true`.
+  - [x] Update any test that asserts the old absolute URLs (`RecentMatches.test.tsx` mocks `fetch`).
+  - [x] Live check: `npm run dev`, play one round in two browser tabs at `http://localhost:5173`.
 
-- [ ] **Task 5: The image contains the client (AC: 1)**
-  - [ ] `Dockerfile` build stage: also copy `packages/client` and run its build (needs the client's dev dependencies — the build stage already does a full `npm ci`). Runtime stage: copy `packages/client/dist` to the path the server expects (1f). Header comment updated (1i).
-  - [ ] `ci.yml` smoke step: additionally `curl -sf http://localhost:3000/ | grep -q '<div id="root">'` (the page is served). Keep `scripts/smoke.mjs`.
-  - [ ] Local check: `docker build` + `docker run -p 3000:3000 -e DATABASE_URL=<local>` → open `http://localhost:3000` in two tabs and play a round; this is exactly the production shape.
+- [x] **Task 5: The image contains the client (AC: 1)**
+  - [x] `Dockerfile` build stage: also copy `packages/client` and run its build (needs the client's dev dependencies — the build stage already does a full `npm ci`). Runtime stage: copy `packages/client/dist` to the path the server expects (1f). Header comment updated (1i).
+  - [x] `ci.yml` smoke step: additionally `curl -sf http://localhost:3000/ | grep -q '<div id="root">'` (the page is served). Keep `scripts/smoke.mjs`.
+  - [x] Local check: `docker build` + `docker run -p 3000:3000 -e DATABASE_URL=<local>` → open `http://localhost:3000` in two tabs and play a round; this is exactly the production shape.
 
 - [ ] **Task 6: Render + deploy workflow (AC: 1)**
-  - [ ] `render.yaml` per 1b (or dashboard settings recorded in the README).
-  - [ ] `deploy.yml` per 1c. Delete `deploy/cloudflare/` per 1i.
+  - [x] `render.yaml` per 1b (or dashboard settings recorded in the README).
+  - [x] `deploy.yml` per 1c. Delete `deploy/cloudflare/` per 1i.
   - [ ] Danilo's 1a steps; `RENDER_DEPLOY_HOOK_URL` secret set.
   - [ ] First deploy by hand (dashboard "Manual Deploy" or one `curl` to the hook) BEFORE merging, so the merge isn't the first test of the service.
 
@@ -95,8 +95,8 @@ so that we can play for real without anyone's laptop running.
   - [ ] Sleep check per 1g, with evidence (timestamps).
   - [ ] Danilo + a friend on another network: full match in browsers — create, share link, play, a forfeit, result, rematch — and it shows in the recent list (AC3).
   - [ ] DB-failure path: not re-tested in prod (proven in 3.1/3.2); check that the Render logs show no crash traces during the smoke runs.
-  - [ ] README: replace the "client deploys separately" text; add a **Deployment** section: the one-service shape, env vars, secrets, how a deploy happens, how to redeploy by hand, where the logs are (Render dashboard), the sleep behavior and the ~1 min wake-up. Update the Packages table (server and client are no longer "planned").
-  - [ ] `deferred-work.md`: mark resolved — graceful shutdown (3.1/3.2 item), hardcoded `localhost:3000` API base (3.2 item).
+  - [x] README: replace the "client deploys separately" text; add a **Deployment** section: the one-service shape, env vars, secrets, how a deploy happens, how to redeploy by hand, where the logs are (Render dashboard), the sleep behavior and the ~1 min wake-up. Update the Packages table (server and client are no longer "planned").
+  - [x] `deferred-work.md`: mark resolved — graceful shutdown (3.1/3.2 item), hardcoded `localhost:3000` API base (3.2 item).
   - [ ] Commit on `story/4.2`, push, PR, `bmad-code-review`, merge per D23. POST-MERGE: watch the first `deploy.yml` run, then re-run the public smoke.
 
 ## Dev Notes
@@ -159,14 +159,37 @@ claude-fable-5 (first spec + WIP), claude-opus-5-5 (re-scope 2026-10-25)
 
 Decisions (fill at implementation):
 
-- 1a — human steps (Render account, card asked?, hook secret, friend match) — when/how:
-- 1b — Blueprint or dashboard; final service settings:
-- 1c — deploy.yml shape:
-- 1d — PORT handling:
-- 1e — CORS removal + test:
-- 1f — client dir path logic + injection for tests:
-- 1g — sleep check evidence; cold-start time; go or Koyeb fallback:
-- 1h — image build notes:
-- 1i — Cloudflare removal:
+- 1a — Render account created 2026-10-25 by Danilo via GitHub sign-up; **no credit card asked** (free plan confirmed). Service creation, hook secret and friend match: pending.
+- 1b — Blueprint: `render.yaml` at repo root — `type: web`, `runtime: docker`, `plan: free`, `region: frankfurt`, `dockerfilePath: ./Dockerfile`, `healthCheckPath: /api/health`, `autoDeployTrigger: 'off'`, `envVars: DATABASE_URL (sync: false)`. Field names verified against render.com/docs/blueprint-spec on 2026-10-25 (`autoDeploy: false` is the deprecated form). No `branch` field: the branch is picked when the Blueprint is created (story/4.2 for the pre-merge test, then main).
+- 1c — `deploy.yml`: checkout → setup-node → `npm ci` → migrate Neon (unchanged) → `curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"`. `contents: read`, `cancel-in-progress: false`. Cloudflare steps removed.
+- 1d — `PORT: z.coerce.number().int().min(1).max(65535).default(3000)` in `configSchema`; `server.ts` listens on `loadConfig().PORT` and logs `server listening on port N`. 4 new config tests (default, parse, non-number, out of range).
+- 1e — `cors` middleware, Socket.IO `cors` option, both `CLIENT_ORIGIN` constants, and the `cors` + `@types/cors` deps removed. Test now asserts a foreign Origin gets NO `Access-Control-Allow-Origin`. Verified live: `curl -H "Origin: https://evil.example"` → no CORS header.
+- 1f — `createApp(clientDir = CLIENT_DIST)` in `app.ts`; `CLIENT_DIST = fileURLToPath(new URL('../../client/dist', import.meta.url))` (same from src/, dist/ and /app in the image). `express.static` mounted after the API routes, only if the dir exists. `export const app = createApp()` keeps every existing import working; tests inject a temp dir. Spec correction: unknown `/api/*` paths were never JSON 404s (Express's default 404 is HTML text); the real requirement — they must not get `index.html` — is what the test asserts.
+- 1g — pending (needs the live service).
+- 1h — Render builds the image itself. Local image 379 MB (node:24-slim base + server deps + ~4 MB client). Verified locally with `-e PORT=10000`: page, `/?match=abc`, card art and JS bundle served; no `localhost:3000` in the bundle; `scripts/smoke.mjs` PASS ×3; `/api/nope` → 404; a `[db]` ECONNREFUSED (no DB in the test) was logged and the server kept running; `docker stop` → `[shutdown] clean exit`, exit 0.
+- 1i — `deploy/cloudflare/` deleted. `CLOUDFLARE_API_TOKEN` was never created (`gh secret list` shows only `NEON_DATABASE_URL`). Dockerfile header rewritten.
+- Dev-loop note: on Danilo's machine port 3000 was held by another project's dev server (QueenZ, Next.js), so `npm run dev` failed with EADDRINUSE. The proxy was verified instead with the server on `PORT=3100` and a throwaway Vite instance proxying to it: `scripts/smoke.mjs http://localhost:5199` PASS ×3 (REST + WebSocket through the proxy). Stop the other app before `npm run dev`.
 
 ### File List
+
+- `packages/server/src/config.ts` (modified)
+- `packages/server/src/config.test.ts` (modified)
+- `packages/server/src/app.ts` (modified)
+- `packages/server/src/app.test.ts` (modified)
+- `packages/server/src/server.ts` (modified)
+- `packages/server/src/db/pool.ts` (modified — WIP commit 6e11bf7)
+- `packages/server/package.json` (modified)
+- `package-lock.json` (modified)
+- `packages/client/src/socket.ts` (modified)
+- `packages/client/src/components/HomeScreen.tsx` (modified)
+- `packages/client/src/components/RecentMatches.tsx` (modified)
+- `packages/client/src/components/RecentMatches.test.tsx` (modified)
+- `packages/client/vite.config.ts` (modified)
+- `Dockerfile` (modified)
+- `render.yaml` (created)
+- `.github/workflows/ci.yml` (modified)
+- `.github/workflows/deploy.yml` (created in WIP, rewritten)
+- `deploy/cloudflare/` (created in WIP, deleted)
+- `.env.example` (modified)
+- `README.md` (modified)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (modified)

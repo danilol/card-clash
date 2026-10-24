@@ -20,16 +20,13 @@ export function HomeScreen({ dispatch }: { dispatch: Dispatch<Action> }) {
     setError(null);
 
     try {
-      const httpResponse: Response = await fetch(
-        'http://localhost:3000/api/matches',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ nickname }),
+      const httpResponse: Response = await fetch('/api/matches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({ nickname }),
+      });
 
       if (!httpResponse.ok) {
         const errorData = await httpResponse.json().catch(() => ({}));

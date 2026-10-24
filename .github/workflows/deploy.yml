@@ -22,15 +22,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Migrations first, so the new server never starts against an old schema.
       - name: Migrate the production database (Neon)
         run: npm run migrate -w @card-clash/server
         env:
           DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-      - name: Install worker glue deps (not an npm workspace)
-        run: npm ci
-        working-directory: deploy/cloudflare
-      - name: Deploy (wrangler builds and pushes the container image)
-        run: npx wrangler deploy
-        working-directory: deploy/cloudflare
+      # The hook only STARTS the deploy: Render then builds the Dockerfile and
+      # swaps the service over once /api/health answers (render.yaml).
+      - name: Trigger the Render deploy
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
