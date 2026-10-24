@@ -62,6 +62,30 @@ anything touching uncommitted work you did not write.
 
 ---
 
+## Git and pull requests
+
+These rules apply to every contributor, human or AI.
+
+- **Authorship.** Commits are authored only by the human who made them. No
+  `Co-Authored-By` trailer and no tool attribution ("Generated with …") in
+  commit messages or PR descriptions.
+- **Branches.** Never commit or push to the default branch (`main`). Work on a
+  feature branch and open a PR.
+- **Commit messages.** A short imperative subject (under ~72 characters) saying
+  what changed. Then a body saying why, when it isn't obvious.
+- **PR descriptions** are short, plain and complete, in these sections:
+  1. **What and why** — the problem and the change, in two or three sentences.
+  2. **Changes** — grouped by area, one line each.
+  3. **Decisions and trade-offs** — what a reviewer might question, and what
+     was left out on purpose.
+  4. **Testing** — what was run and the result. Say plainly what was not tested.
+  5. **Follow-ups** — known gaps, if any.
+
+Claude Code enforces the attribution rule through `.claude/settings.json`.
+`.github/pull_request_template.md` gives hand-opened PRs the same shape.
+
+---
+
 ## Must-Do Practices
 
 - **Be brutally honest.** When asked for an opinion, do not sugar-coat or try to
