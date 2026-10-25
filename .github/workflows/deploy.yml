@@ -1,7 +1,11 @@
 name: Deploy
 
+# Deploy only after CI has passed on the pushed commit (story 4.2 review,
+# decision a): a red main — or a direct push — never migrates or deploys.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 permissions:
@@ -14,9 +18,26 @@ concurrency:
 
 jobs:
   deploy:
+    # CI also runs on pull requests; only a green push to main deploys.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
+    env:
+      # The exact commit CI tested — checked out, migrated AND deployed.
+      SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
+      # Fail before touching the database if a secret is missing.
+      - name: Check deploy secrets are set
+        run: |
+          test -n "$NEON_DATABASE_URL" || { echo "::error::NEON_DATABASE_URL secret is missing"; exit 1; }
+          test -n "$RENDER_DEPLOY_HOOK_URL" || { echo "::error::RENDER_DEPLOY_HOOK_URL secret is missing"; exit 1; }
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -29,7 +50,11 @@ jobs:
           DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
       # The hook only STARTS the deploy: Render then builds the Dockerfile and
       # swaps the service over once /api/health answers (render.yaml).
+      # `ref` pins the build to the commit migrated above — without it Render
+      # builds the branch head, which may be a newer, not-yet-migrated commit.
       - name: Trigger the Render deploy
-        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+        run: |
+          case "$RENDER_DEPLOY_HOOK_URL" in *\?*) SEP='&' ;; *) SEP='?' ;; esac
+          curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}${SEP}ref=${SHA}" > /dev/null
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}

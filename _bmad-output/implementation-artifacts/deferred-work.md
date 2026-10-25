@@ -76,3 +76,8 @@
 
 - ~~Hardcoded `http://localhost:3000` API origin is now in three client places (HomeScreen create fetch, `socket.ts`, RecentMatches fetch). Works for the local-dev deployment shape; replace with one `VITE_API_URL`-style base (or relative paths + proxy) when the NFR6 remote-host deployment story lands.~~ **Resolved in Story 4.2 (2026-10-25):** relative paths + Vite proxy; the server serves the client in production (same origin, D26).
 - `RecentMatch` wire type is declared in the server db layer and mirrored in the client (client cannot import the server package). Move REST payload types into the engine protocol package (the established home for shared wire types) on the next protocol touch.
+
+## Deferred from: code review of 4-2-the-game-lives-on-the-internet (2026-10-25)
+
+- Deploy workflow reports green as soon as Render accepts the hook; a failed Render build or health check is not detected, and Neon has already been migrated forward. Nothing states that migrations must stay backward compatible with the previous server. Fix later: poll the Render deploy (or a version field on `/api/health`) after the hook, and write the backward-compatibility rule down when the second migration appears.
+- HomeScreen's switch to the relative `/api/matches` URL has no test (RecentMatches has one). A HomeScreen test needs `socket.ts` mocked, because importing it opens a socket in jsdom.

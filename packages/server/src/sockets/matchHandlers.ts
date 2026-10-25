@@ -28,6 +28,7 @@ import {
 import { buildStartViews } from './startViews.js';
 import { rematchCommandSchema } from '@card-clash/engine';
 import { resolveDisconnect } from './resolveDisconnect.js';
+import { isShuttingDown } from '../lifecycle.js';
 import { persistFinishedMatch } from '../db/persistFinishedMatch.js';
 
 export function registerMatchHandlers(
@@ -187,7 +188,7 @@ export function registerMatchHandlers(
       const entry = findMatchBySocketId(socket.id);
       if (!entry) return;
 
-      const resolution = resolveDisconnect(entry, socket.id);
+      const resolution = resolveDisconnect(entry, socket.id, isShuttingDown());
 
       switch (resolution.kind) {
         case 'none':

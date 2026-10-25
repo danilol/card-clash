@@ -11,7 +11,11 @@ export type DisconnectResolution =
 export function resolveDisconnect(
   entry: MatchEntry,
   socketId: string,
+  shuttingDown = false,
 ): DisconnectResolution {
+  // The server kicked everyone (story 4.2 review): no forfeit, no record.
+  if (shuttingDown) return { kind: 'none' };
+
   const leaver = entry.players.find((p) => p.socketId === socketId);
   if (!leaver) {
     return { kind: 'none' };

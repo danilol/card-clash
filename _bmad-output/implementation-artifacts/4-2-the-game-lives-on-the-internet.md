@@ -4,7 +4,7 @@ baseline_commit: 281c4e06172e8b8b909c88fd1a677fc9a2863283
 
 # Story 4.2: The game lives on the internet
 
-Status: in-progress — spec approved 2026-10-25; code done, waiting on Danilo's Render steps (Task 6)
+Status: in-progress — merged (PR #20) and live; review fixes in a follow-up PR; deploy hook secret and the friend match still open
 
 <!-- Process note (PRD D23): AI implements this story fully via bmad-dev-story — code, tests,
      commit, PR, review, merge. Danilo approves this spec before dev starts.
@@ -99,6 +99,23 @@ so that we can play for real without anyone's laptop running.
   - [x] `deferred-work.md`: mark resolved — graceful shutdown (3.1/3.2 item), hardcoded `localhost:3000` API base (3.2 item).
   - [ ] Commit on `story/4.2`, push, PR, `bmad-code-review`, merge per D23. POST-MERGE: watch the first `deploy.yml` run, then re-run the public smoke.
 
+### Review Findings
+
+Code review 2026-10-25 (after merge, PR #20): Blind Hunter + Edge Case Hunter + Acceptance Auditor on 281c4e0..18ae673 (code and config).
+
+- [x] [Review][Decision] Deploy does not wait for CI — `deploy.yml` runs on push to `main` in parallel with `ci.yml`, so a red commit (or a direct push) still migrates Neon and deploys. The spec chose push-to-main because branch protection gates PR merges. Options: gate on CI success via `workflow_run`, or keep as is. **Resolved: Danilo chose (a) — `deploy.yml` now runs on `workflow_run` of CI, only for a green push to main, and deploys that exact SHA.**
+- [x] [Review][Patch] Shutdown writes a fake forfeit for every live match, and a second signal runs shutdown twice [packages/server/src/server.ts:43, packages/server/src/sockets/matchHandlers.ts:186]
+- [x] [Review][Patch] Deploy hook can build a newer commit than the one just migrated — pass `ref=$GITHUB_SHA` [.github/workflows/deploy.yml:33]
+- [x] [Review][Patch] Missing deploy-hook secret is only noticed after the migration ran — check it first [.github/workflows/deploy.yml:27]
+- [x] [Review][Patch] README recommends Render "Manual Deploy", which skips the migration [README.md]
+- [x] [Review][Patch] No startup log says whether the client build is served (silent blank site in prod, stale build in dev) [packages/server/src/server.ts]
+- [x] [Review][Patch] `PORT=` (empty) fails startup instead of using the default [packages/server/src/config.ts:16]
+- [x] [Review][Patch] "No cross-origin permission at all" comment/test name overstates it — CORS does not cover WebSocket upgrades [packages/server/src/app.ts:13, packages/server/src/app.test.ts:15]
+- [x] [Review][Patch] `app.test.ts` leaves a temp directory behind on every run [packages/server/src/app.test.ts:29]
+- [x] [Review][Patch] README states "a connected match keeps the service awake" before the sleep test confirmed it — confirm or correct with the result [README.md] — **confirmed by the sleep test (1g): kept as is**
+- [x] [Review][Defer] Deploy workflow is green even if the Render build fails; schema can be ahead of the running server; no rule that migrations stay backward compatible [.github/workflows/deploy.yml:27-35] — deferred, accepted by the spec's "migrations first" design
+- [x] [Review][Defer] HomeScreen's relative-URL change has no test [packages/client/src/components/HomeScreen.tsx:23] — deferred, needs a socket mock in jsdom
+
 ## Dev Notes
 
 ### Working agreement
@@ -165,7 +182,7 @@ Decisions (fill at implementation):
 - 1d — `PORT: z.coerce.number().int().min(1).max(65535).default(3000)` in `configSchema`; `server.ts` listens on `loadConfig().PORT` and logs `server listening on port N`. 4 new config tests (default, parse, non-number, out of range).
 - 1e — `cors` middleware, Socket.IO `cors` option, both `CLIENT_ORIGIN` constants, and the `cors` + `@types/cors` deps removed. Test now asserts a foreign Origin gets NO `Access-Control-Allow-Origin`. Verified live: `curl -H "Origin: https://evil.example"` → no CORS header.
 - 1f — `createApp(clientDir = CLIENT_DIST)` in `app.ts`; `CLIENT_DIST = fileURLToPath(new URL('../../client/dist', import.meta.url))` (same from src/, dist/ and /app in the image). `express.static` mounted after the API routes, only if the dir exists. `export const app = createApp()` keeps every existing import working; tests inject a temp dir. Spec correction: unknown `/api/*` paths were never JSON 404s (Express's default 404 is HTML text); the real requirement — they must not get `index.html` — is what the test asserts.
-- 1g — pending (needs the live service).
+- 1g — Run 1 (2026-10-24 23:57 → 00:20 UTC, https://card-clash-35vx.onrender.com): two websocket clients joined a match and stayed silent 20 min. **The service did not sleep** — client B stayed connected past the 15-min timer (Socket.IO pongs count as incoming WebSocket messages). Unexplained: client A's socket closed at 00:05:14 (`transport close`, ~7 min in); the server forfeited it in ~6s and saved row 4 (correct FR5 behavior). Not a sleep or restart (B stayed connected). Run 2 started to see whether drops repeat. Live full match before that: 100 rounds in 3s, `roundCap`, row 3 saved. Cold start not measured yet (service never slept).
 - 1h — Render builds the image itself. Local image 379 MB (node:24-slim base + server deps + ~4 MB client). Verified locally with `-e PORT=10000`: page, `/?match=abc`, card art and JS bundle served; no `localhost:3000` in the bundle; `scripts/smoke.mjs` PASS ×3; `/api/nope` → 404; a `[db]` ECONNREFUSED (no DB in the test) was logged and the server kept running; `docker stop` → `[shutdown] clean exit`, exit 0.
 - 1i — `deploy/cloudflare/` deleted. `CLOUDFLARE_API_TOKEN` was never created (`gh secret list` shows only `NEON_DATABASE_URL`). Dockerfile header rewritten.
 - Dev-loop note: on Danilo's machine port 3000 was held by another project's dev server (QueenZ, Next.js), so `npm run dev` failed with EADDRINUSE. The proxy was verified instead with the server on `PORT=3100` and a throwaway Vite instance proxying to it: `scripts/smoke.mjs http://localhost:5199` PASS ×3 (REST + WebSocket through the proxy). Stop the other app before `npm run dev`.
