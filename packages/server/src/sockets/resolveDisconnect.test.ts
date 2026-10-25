@@ -65,3 +65,21 @@ describe('resolveDisconnect (story 2.6, decision 6d)', () => {
     expect(resolveDisconnect(entry, 's-stranger')).toEqual({ kind: 'none' });
   });
 });
+
+describe('resolveDisconnect during server shutdown (story 4.2 review)', () => {
+  // io.close() disconnects every socket on SIGTERM; the server kicked both
+  // players, so nobody forfeited and nothing may be recorded.
+  it('playing → none while shutting down (no fake forfeit)', () => {
+    const entry = makeEntry('playing', [ALICE, BOB]);
+    expect(resolveDisconnect(entry, ALICE.socketId, true)).toEqual({
+      kind: 'none',
+    });
+  });
+
+  it('ended → none while shutting down', () => {
+    const entry = makeEntry('ended', [ALICE, BOB]);
+    expect(resolveDisconnect(entry, BOB.socketId, true)).toEqual({
+      kind: 'none',
+    });
+  });
+});

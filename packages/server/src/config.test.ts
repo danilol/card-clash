@@ -48,6 +48,11 @@ describe('config schema: PORT (story 4.2, 1d)', () => {
     expect(parsed.success && parsed.data.PORT).toBe(10000);
   });
 
+  it('treats an empty PORT= line as unset (story 4.2 review)', () => {
+    const parsed = configSchema.safeParse({ DATABASE_URL, PORT: '' });
+    expect(parsed.success && parsed.data.PORT).toBe(3000);
+  });
+
   it('rejects a non-number PORT', () => {
     expect(configSchema.safeParse({ DATABASE_URL, PORT: 'abc' }).success).toBe(
       false,

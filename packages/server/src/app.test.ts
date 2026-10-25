@@ -1,7 +1,7 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, createApp } from './app.js';
 
@@ -13,8 +13,8 @@ describe('GET /api/health', () => {
   });
 
   // Story 4.2 (1e): page and server share one origin, so no CORS config —
-  // a foreign site gets no permission at all (stricter than the old lock).
-  it('grants no CORS permission to a foreign origin', async () => {
+  // a foreign site may not read REST responses (stricter than the old lock).
+  it('sends no CORS header to a foreign origin', async () => {
     const res = await request(app)
       .get('/api/health')
       .set('Origin', 'https://evil.example');
@@ -27,6 +27,8 @@ describe('serving the built client (story 4.2, 1f)', () => {
   const clientDir = mkdtempSync(join(tmpdir(), 'card-clash-client-'));
   writeFileSync(join(clientDir, 'index.html'), INDEX_HTML);
   const withClient = createApp(clientDir);
+
+  afterAll(() => rmSync(clientDir, { recursive: true, force: true }));
 
   it('serves index.html at /', async () => {
     const res = await request(withClient).get('/');

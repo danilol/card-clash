@@ -55,12 +55,14 @@ for the same shape.
 | Database | Neon                                             | `DATABASE_URL` — the DIRECT (non-pooler) URL             |
 | Deploy   | `.github/workflows/deploy.yml` on push to `main` | secrets `NEON_DATABASE_URL`, `RENDER_DEPLOY_HOOK_URL`    |
 
-- **How a deploy happens:** a merge to `main` runs `deploy.yml`. It migrates
-  Neon first, then calls the Render deploy hook. Render builds the
+- **How a deploy happens:** a merge to `main` runs CI. Only when CI passes,
+  `deploy.yml` runs: it checks the secrets, migrates Neon, then calls the
+  Render deploy hook with that exact commit (`ref=<sha>`). Render builds the
   Dockerfile and switches over once `/api/health` answers. Auto-deploy on
   Render is off, so a deploy never skips the migration.
-- **Redeploy by hand:** Render dashboard → service → Manual Deploy, or
-  re-run the Deploy workflow in GitHub Actions.
+- **Redeploy by hand:** re-run the **Deploy** workflow in GitHub Actions.
+  Avoid Render's **Manual Deploy** button: it skips the migration. It is only
+  safe when no new migration was added.
 - **Logs:** Render dashboard → service → Logs. Look for `[db]` and
   `[shutdown]` lines.
 - **Env vars:** `DATABASE_URL` is set in the Render dashboard (never in git).
